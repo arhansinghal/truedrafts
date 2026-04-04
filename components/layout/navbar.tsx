@@ -58,9 +58,8 @@ export function Navbar() {
       <header className="sticky top-0 z-50 w-full border-b border-gray-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60">
         <div className="container mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 shrink-0">
-            <Image src="/TD_logo.png" alt="TrueDrafts" width={36} height={36} className="object-contain" unoptimized />
-            <span className="font-serif text-xl font-bold text-[#0851A0]">TrueDrafts</span>
+          <Link href="/" className="flex items-center shrink-0">
+            <Image src="/td_text_logo.png" alt="TrueDrafts" width={160} height={48} className="object-contain" unoptimized />
           </Link>
 
           {/* Nav links */}

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BookOpen } from "lucide-react";
+import Image from "next/image";
 
 export function Footer() {
   return (
@@ -7,9 +7,8 @@ export function Footer() {
       <div className="container mx-auto max-w-7xl px-4 py-12">
         <div className="flex flex-col items-start gap-8 md:flex-row md:justify-between">
           <div>
-            <div className="flex items-center gap-2 mb-3">
-              <BookOpen className="h-5 w-5 text-[#0851A0]" />
-              <span className="font-bold text-gray-900">TrueDrafts</span>
+            <div className="mb-3">
+              <Image src="/td_text_logo.png" alt="TrueDrafts" width={140} height={42} className="object-contain" unoptimized />
             </div>
             <p className="text-sm text-gray-500 max-w-xs">
               Real essays. Real admits. Real insight.
