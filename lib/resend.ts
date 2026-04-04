@@ -2,7 +2,10 @@ import { Resend } from "resend";
 import { db, essays, users } from "./db";
 import { eq } from "drizzle-orm";
 
-export const resend = new Resend(process.env.RESEND_API_KEY);
+function getResend() {
+  if (!process.env.RESEND_API_KEY) return null;
+  return new Resend(process.env.RESEND_API_KEY);
+}
 
 const FROM = "TrueDrafts <noreply@truedrafts.com>";
 
@@ -45,6 +48,8 @@ function emailWrapper(content: string) {
 }
 
 export async function sendPurchaseConfirmation(buyerId: string, essayId: string) {
+  const resend = getResend();
+  if (!resend) return;
   const [buyer, essay] = await Promise.all([
     db.query.users.findFirst({ where: eq(users.id, buyerId) }),
     db.query.essays.findFirst({ where: eq(essays.id, essayId) }),
@@ -71,6 +76,8 @@ export async function sendPurchaseConfirmation(buyerId: string, essayId: string)
 }
 
 export async function sendWriterSaleNotification(writerId: string, buyerId: string, essayId: string) {
+  const resend = getResend();
+  if (!resend) return;
   const [writer, buyer, essay] = await Promise.all([
     db.query.users.findFirst({ where: eq(users.id, writerId) }),
     db.query.users.findFirst({ where: eq(users.id, buyerId) }),
@@ -98,6 +105,8 @@ export async function sendWriterSaleNotification(writerId: string, buyerId: stri
 }
 
 export async function sendEssayApproved(writerId: string, essayId: string) {
+  const resend = getResend();
+  if (!resend) return;
   const [writer, essay] = await Promise.all([
     db.query.users.findFirst({ where: eq(users.id, writerId) }),
     db.query.essays.findFirst({ where: eq(essays.id, essayId) }),
@@ -119,6 +128,8 @@ export async function sendEssayApproved(writerId: string, essayId: string) {
 }
 
 export async function sendEssayRejected(writerId: string, essayId: string, reason: string) {
+  const resend = getResend();
+  if (!resend) return;
   const [writer, essay] = await Promise.all([
     db.query.users.findFirst({ where: eq(users.id, writerId) }),
     db.query.essays.findFirst({ where: eq(essays.id, essayId) }),
