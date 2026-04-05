@@ -54,6 +54,7 @@ export default async function ApplicationsPage({
     );
   }
 
+  // Fetch applications in parallel with universities (universities resolved above, used for filter only)
   const rows = await db.query.collegeApplications.findMany({
     where: and(...whereConditions),
     with: {

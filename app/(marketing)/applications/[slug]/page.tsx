@@ -35,17 +35,18 @@ export default async function ApplicationDetailPage({ params, searchParams }: Pr
   const { slug } = await params;
   const sp = await searchParams;
 
-  const app = await db.query.collegeApplications.findFirst({
-    where: and(eq(collegeApplications.slug, slug), eq(collegeApplications.status, "approved")),
-    with: {
-      university: true,
-      writer: { columns: { id: true, name: true, email: true, username: true, verifiedAdmit: true, bio: true } },
-    },
-  });
+  const [app, session] = await Promise.all([
+    db.query.collegeApplications.findFirst({
+      where: and(eq(collegeApplications.slug, slug), eq(collegeApplications.status, "approved")),
+      with: {
+        university: true,
+        writer: { columns: { id: true, name: true, email: true, username: true, verifiedAdmit: true, bio: true } },
+      },
+    }),
+    auth.api.getSession({ headers: await headers() }),
+  ]);
 
   if (!app) notFound();
-
-  const session = await auth.api.getSession({ headers: await headers() });
 
   let isPurchased = false;
   if (session) {
