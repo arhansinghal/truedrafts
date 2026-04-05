@@ -13,6 +13,7 @@ interface Props {
 
 export function ApplicationPaywall({ applicationId, applicationSlug, priceCents, isLoggedIn }: Props) {
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function handleUnlock() {
     if (!isLoggedIn) {
@@ -20,11 +21,18 @@ export function ApplicationPaywall({ applicationId, applicationSlug, priceCents,
       return;
     }
     setLoading(true);
+    setError(null);
     try {
       const res = await fetch(`/api/applications/${applicationId}/checkout`, { method: "POST" });
       const data = await res.json();
-      if (data.url) window.location.href = data.url;
-    } finally {
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        setError(data.detail ?? data.error ?? "Something went wrong. Please try again.");
+        setLoading(false);
+      }
+    } catch {
+      setError("Network error. Please try again.");
       setLoading(false);
     }
   }
@@ -41,6 +49,9 @@ export function ApplicationPaywall({ applicationId, applicationSlug, priceCents,
         <Lock className="h-4 w-4" />
         {loading ? "Redirecting..." : `Unlock Full Application — ${formatCents(priceCents)}`}
       </Button>
+      {error && (
+        <p className="text-xs text-red-500 text-center max-w-xs">{error}</p>
+      )}
       {!isLoggedIn && (
         <p className="text-xs text-gray-400">Sign in required to purchase</p>
       )}

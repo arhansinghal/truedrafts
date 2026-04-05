@@ -288,54 +288,59 @@ export default async function ApplicationDetailPage({ params, searchParams }: Pr
                 ))}
               </div>
             ) : (
-              /* Paywall preview — 20% of content visible, rest faded */
+              /* Paywall preview — 20% visible, rest faded */
               <div className="space-y-6">
                 {app.submittedCommonApp && app.commonAppContent && (() => {
-                  const chars = app.commonAppContent!.length;
-                  const previewEnd = Math.floor(chars * 0.2);
-                  const preview = app.commonAppContent!.slice(0, previewEnd);
-                  const rest = app.commonAppContent!.slice(previewEnd);
+                  const content = app.commonAppContent!;
+                  const cutoff = Math.floor(content.length * 0.2);
+                  const visible = content.slice(0, cutoff);
+                  const hidden = content.slice(cutoff);
                   return (
-                    <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+                    <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm overflow-hidden">
                       <h2 className="font-semibold text-gray-900 mb-1">Common App Essay</h2>
                       {app.commonAppPrompt && (
                         <p className="text-sm text-gray-500 italic mb-4 leading-relaxed border-l-2 border-gray-200 pl-3">
                           {app.commonAppPrompt}
                         </p>
                       )}
-                      <div className="relative">
-                        <p className="font-serif text-base text-gray-800 leading-relaxed whitespace-pre-wrap">{preview}</p>
-                        <div className="relative select-none pointer-events-none">
-                          <p className="font-serif text-base text-gray-800 leading-relaxed whitespace-pre-wrap opacity-20 line-clamp-3">{rest}</p>
-                          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/60 to-white" />
-                        </div>
-                        <div className="mt-4 flex items-center gap-2 text-sm text-gray-400 border-t border-gray-100 pt-4">
-                          <Lock className="h-4 w-4 shrink-0" />
-                          <span>Unlock to read the full essay and all supplementals</span>
-                        </div>
+                      <p className="font-serif text-base text-gray-800 leading-relaxed whitespace-pre-wrap">{visible}</p>
+                      <div className="relative select-none pointer-events-none mt-0">
+                        <p className="font-serif text-base text-gray-700 leading-relaxed whitespace-pre-wrap">{hidden}</p>
+                        <div className="absolute inset-0 bg-gradient-to-b from-transparent from-0% via-white/80 via-30% to-white to-60%" />
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-gray-400 border-t border-gray-100 pt-4 mt-2">
+                        <Lock className="h-4 w-4 shrink-0" />
+                        <span>Unlock to read the full essay and all supplementals</span>
                       </div>
                     </div>
                   );
                 })()}
 
-                {supplementals.slice(0, 2).map((s, i) => (
-                  <div key={i} className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-                    <h2 className="font-semibold text-gray-900 mb-1">Supplemental Essay {i + 1}</h2>
-                    {s.prompt && (
-                      <p className="text-sm text-gray-500 italic mb-4 leading-relaxed border-l-2 border-gray-200 pl-3">
-                        {s.prompt}
-                      </p>
-                    )}
-                    <div className="relative select-none pointer-events-none">
-                      <p className="font-serif text-base text-gray-800 leading-relaxed whitespace-pre-wrap opacity-20 line-clamp-2">{s.content}</p>
-                      <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-white" />
+                {supplementals.map((s, i) => {
+                  const content = s.content ?? "";
+                  const cutoff = Math.floor(content.length * 0.2);
+                  const visible = content.slice(0, cutoff);
+                  const hidden = content.slice(cutoff);
+                  return (
+                    <div key={i} className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm overflow-hidden">
+                      <h2 className="font-semibold text-gray-900 mb-1">Supplemental Essay {i + 1}</h2>
+                      {s.prompt && (
+                        <p className="text-sm text-gray-500 italic mb-4 leading-relaxed border-l-2 border-gray-200 pl-3">
+                          {s.prompt}
+                        </p>
+                      )}
+                      <p className="font-serif text-base text-gray-800 leading-relaxed whitespace-pre-wrap">{visible}</p>
+                      <div className="relative select-none pointer-events-none mt-0">
+                        <p className="font-serif text-base text-gray-700 leading-relaxed whitespace-pre-wrap">{hidden}</p>
+                        <div className="absolute inset-0 bg-gradient-to-b from-transparent from-0% via-white/80 via-30% to-white to-60%" />
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-gray-400 border-t border-gray-100 pt-4 mt-2">
+                        <Lock className="h-3.5 w-3.5 shrink-0" />
+                        <span>Locked — unlock to read</span>
+                      </div>
                     </div>
-                    <div className="mt-3 flex items-center gap-2 text-sm text-gray-400">
-                      <Lock className="h-3.5 w-3.5 shrink-0" />
-                      <span>Locked — unlock to read</span>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
