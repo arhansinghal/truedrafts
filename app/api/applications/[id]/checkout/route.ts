@@ -39,8 +39,9 @@ export async function POST(
     let polarProductId = app.polarProductId;
 
     if (!polarProductId) {
+      const productName = app.title.length > 64 ? app.title.slice(0, 61) + "..." : app.title;
       const product = await polarClient.products.create({
-        name: app.title,
+        name: productName,
         description: `Full college application to ${app.university?.name ?? "University"}. Class of ${app.admittedYear ?? 2025}.`,
         prices: [
           {
