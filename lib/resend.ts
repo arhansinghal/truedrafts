@@ -58,7 +58,7 @@ export async function sendPurchaseConfirmation(buyerId: string, essayId: string)
 
   const writer = await db.query.users.findFirst({ where: eq(users.id, essay.writerId) });
 
-  await resend.emails.send({
+  await resend!.emails.send({
     from: FROM,
     to: buyer.email,
     subject: `You unlocked: ${essay.title}`,
@@ -87,7 +87,7 @@ export async function sendWriterSaleNotification(writerId: string, buyerId: stri
 
   const payoutDollars = ((essay.priceCents ?? 0) * 0.8 / 100).toFixed(2);
 
-  await resend.emails.send({
+  await resend!.emails.send({
     from: FROM,
     to: writer.email,
     subject: `Your essay was purchased — +$${payoutDollars} earned`,
