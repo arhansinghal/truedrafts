@@ -117,6 +117,11 @@ export default async function ApplicationDetailPage({ params, searchParams }: Pr
   try { supplementals = JSON.parse(app.supplementals ?? "[]"); } catch { supplementals = []; }
   const essayCount = (app.submittedCommonApp ? 1 : 0) + supplementals.length;
 
+  // Watermark SVG: diagonal repeating text with buyer email
+  const watermarkSvg = isPurchased && session
+    ? `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='340' height='160'><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' transform='rotate(-25, 170, 80)' font-size='13' font-family='sans-serif' fill='rgba(8,81,160,0.07)' font-weight='600'>${session.user.email}</text></svg>`)}")`
+    : undefined;
+
   function EssayBlock({
     title, prompt, content, isPurchased: purchased, lockLabel,
   }: { title: string; prompt?: string; content: string; isPurchased: boolean; lockLabel: string }) {
@@ -133,7 +138,18 @@ export default async function ApplicationDetailPage({ params, searchParams }: Pr
           </p>
         )}
         {purchased ? (
-          <p className="font-serif text-base text-gray-800 leading-relaxed whitespace-pre-wrap">{content}</p>
+          <div
+            className="relative"
+            style={{ backgroundImage: watermarkSvg, backgroundRepeat: "repeat" }}
+          >
+            <p
+              className="font-serif text-base text-gray-800 leading-relaxed whitespace-pre-wrap select-none"
+              onCopy={(e) => e.preventDefault()}
+              onCut={(e) => e.preventDefault()}
+            >
+              {content}
+            </p>
+          </div>
         ) : (
           <>
             <p className="font-serif text-base text-gray-800 leading-relaxed whitespace-pre-wrap">{visible}</p>
