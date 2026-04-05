@@ -36,32 +36,24 @@ export async function POST(
   }
 
   try {
-    let polarProductId = app.polarProductId;
-
-    if (!polarProductId) {
-      const productName = app.title.length > 64 ? app.title.slice(0, 61) + "..." : app.title;
-      const product = await polarClient.products.create({
-        name: productName,
-        description: `Full college application to ${app.university?.name ?? "University"}. Class of ${app.admittedYear ?? 2025}.`,
-        prices: [
-          {
-            amountType: "fixed",
-            priceAmount: app.priceCents,
-            priceCurrency: "usd",
-          },
-        ],
-      });
-      polarProductId = product.id;
-      await db
-        .update(collegeApplications)
-        .set({ polarProductId })
-        .where(eq(collegeApplications.id, id));
-    }
+    // Always create a fresh product — avoids stale/archived product IDs in sandbox
+    const productName = app.title.length > 64 ? app.title.slice(0, 61) + "..." : app.title;
+    const product = await polarClient.products.create({
+      name: productName,
+      description: `Full college application to ${app.university?.name ?? "University"}. Class of ${app.admittedYear ?? 2025}.`,
+      prices: [
+        {
+          amountType: "fixed",
+          priceAmount: app.priceCents,
+          priceCurrency: "usd",
+        },
+      ],
+    });
 
     const appUrl = process.env.NEXT_PUBLIC_URL ?? "http://localhost:3000";
 
     const checkout = await polarClient.checkouts.create({
-      products: [polarProductId],
+      products: [product.id],
       customerEmail: session.user.email,
       successUrl: `${appUrl}/applications/${app.slug}?purchased=true&checkout_id={CHECKOUT_ID}`,
       metadata: {

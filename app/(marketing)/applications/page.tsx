@@ -3,7 +3,7 @@ import Image from "next/image";
 import { Suspense } from "react";
 import { db } from "@/lib/db";
 import { collegeApplications, universities } from "@/lib/db/schema";
-import { eq, desc, asc, and, ilike, or } from "drizzle-orm";
+import { eq, desc, asc, and, ilike, or, inArray } from "drizzle-orm";
 import { FilterSidebar } from "@/components/essays/FilterSidebar";
 import { EssaySearch } from "@/components/essays/EssaySearch";
 import { ApplicationCard } from "@/components/applications/ApplicationCard";
@@ -26,13 +26,16 @@ const SORT_OPTIONS = {
 export default async function ApplicationsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ sort?: string; university?: string; page?: string; q?: string }>;
+  searchParams: Promise<{ sort?: string; university?: string; page?: string; q?: string; year?: string }>;
 }) {
   const params = await searchParams;
   const sort = (params.sort ?? "newest") as keyof typeof SORT_OPTIONS;
   const uniSlug = params.university;
   const searchQuery = params.q?.trim();
   const page = Math.max(1, parseInt(params.page ?? "1"));
+  const selectedYears = params.year
+    ? params.year.split(",").map(Number).filter((n) => !isNaN(n) && n > 0)
+    : [];
   const pageSize = 18;
   const offset = (page - 1) * pageSize;
 
@@ -49,9 +52,10 @@ export default async function ApplicationsPage({
   const whereConditions = [eq(collegeApplications.status, "approved")];
   if (uniId) whereConditions.push(eq(collegeApplications.universityId, uniId));
   if (searchQuery) {
-    whereConditions.push(
-      or(ilike(collegeApplications.title, `%${searchQuery}%`))!
-    );
+    whereConditions.push(or(ilike(collegeApplications.title, `%${searchQuery}%`))!);
+  }
+  if (selectedYears.length > 0) {
+    whereConditions.push(inArray(collegeApplications.admittedYear, selectedYears));
   }
 
   // Fetch applications in parallel with universities (universities resolved above, used for filter only)
@@ -135,6 +139,7 @@ export default async function ApplicationsPage({
           currentSort={sort}
           currentUniSlug={uniSlug}
           currentSearch={params.q}
+          currentYear={params.year}
         />
 
         <div className="flex-1 min-w-0">

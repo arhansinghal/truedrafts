@@ -117,6 +117,40 @@ export default async function ApplicationDetailPage({ params, searchParams }: Pr
   try { supplementals = JSON.parse(app.supplementals ?? "[]"); } catch { supplementals = []; }
   const essayCount = (app.submittedCommonApp ? 1 : 0) + supplementals.length;
 
+  function EssayBlock({
+    title, prompt, content, isPurchased: purchased, lockLabel,
+  }: { title: string; prompt?: string; content: string; isPurchased: boolean; lockLabel: string }) {
+    if (!content) return null;
+    const cutoff = Math.floor(content.length * 0.2);
+    const visible = content.slice(0, cutoff);
+    const hidden = content.slice(cutoff);
+    return (
+      <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm overflow-hidden">
+        <h2 className="font-semibold text-gray-900 mb-1">{title}</h2>
+        {prompt && (
+          <p className="text-sm text-gray-500 italic mb-4 leading-relaxed border-l-2 border-gray-200 pl-3">
+            {prompt}
+          </p>
+        )}
+        {purchased ? (
+          <p className="font-serif text-base text-gray-800 leading-relaxed whitespace-pre-wrap">{content}</p>
+        ) : (
+          <>
+            <p className="font-serif text-base text-gray-800 leading-relaxed whitespace-pre-wrap">{visible}</p>
+            <div className="relative">
+              <p className="font-serif text-base text-gray-700 leading-relaxed whitespace-pre-wrap select-none pointer-events-none">{hidden}</p>
+              <div className="absolute inset-0" style={{ background: "linear-gradient(to bottom, transparent 0%, white 50%)" }} />
+            </div>
+            <div className="flex items-center gap-2 text-sm text-gray-400 border-t border-gray-100 pt-4 mt-2">
+              <Lock className="h-3.5 w-3.5 shrink-0" />
+              <span>{lockLabel}</span>
+            </div>
+          </>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#f8faff]">
       <div className="mx-auto max-w-6xl px-4 py-8">
@@ -243,106 +277,29 @@ export default async function ApplicationDetailPage({ params, searchParams }: Pr
 
           {/* Right main area — essay content */}
           <div className="flex-1 min-w-0">
-            {isPurchased ? (
-              <div className="space-y-6">
-                {/* Common App essay */}
-                {app.submittedCommonApp && (
-                  <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-                    <h2 className="font-semibold text-gray-900 mb-1">Common App Essay</h2>
-                    {app.commonAppPrompt && (
-                      <p className="text-sm text-gray-500 italic mb-4 leading-relaxed border-l-2 border-gray-200 pl-3">
-                        {app.commonAppPrompt}
-                      </p>
-                    )}
-                    <p className="font-serif text-base text-gray-800 leading-relaxed whitespace-pre-wrap">
-                      {app.commonAppContent}
-                    </p>
-                    {app.commonAppScreenshotUrl && (
-                      <div className="mt-4">
-                        <p className="text-xs font-medium text-gray-400 mb-2">Common App Screenshot</p>
-                        <img
-                          src={app.commonAppScreenshotUrl}
-                          alt="Common App screenshot"
-                          className="max-w-full max-h-80 rounded-xl border border-gray-100 object-contain"
-                        />
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Supplementals */}
-                {supplementals.map((s, i) => (
-                  <div key={i} className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-                    <h2 className="font-semibold text-gray-900 mb-1">
-                      Supplemental Essay {i + 1}
-                    </h2>
-                    {s.prompt && (
-                      <p className="text-sm text-gray-500 italic mb-4 leading-relaxed border-l-2 border-gray-200 pl-3">
-                        {s.prompt}
-                      </p>
-                    )}
-                    <p className="font-serif text-base text-gray-800 leading-relaxed whitespace-pre-wrap">
-                      {s.content}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              /* Paywall preview — 20% visible, rest faded */
-              <div className="space-y-6">
-                {app.submittedCommonApp && app.commonAppContent && (() => {
-                  const content = app.commonAppContent!;
-                  const cutoff = Math.floor(content.length * 0.2);
-                  const visible = content.slice(0, cutoff);
-                  const hidden = content.slice(cutoff);
-                  return (
-                    <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm overflow-hidden">
-                      <h2 className="font-semibold text-gray-900 mb-1">Common App Essay</h2>
-                      {app.commonAppPrompt && (
-                        <p className="text-sm text-gray-500 italic mb-4 leading-relaxed border-l-2 border-gray-200 pl-3">
-                          {app.commonAppPrompt}
-                        </p>
-                      )}
-                      <p className="font-serif text-base text-gray-800 leading-relaxed whitespace-pre-wrap">{visible}</p>
-                      <div className="relative select-none pointer-events-none mt-0">
-                        <p className="font-serif text-base text-gray-700 leading-relaxed whitespace-pre-wrap">{hidden}</p>
-                        <div className="absolute inset-0 bg-gradient-to-b from-transparent from-0% via-white/80 via-30% to-white to-60%" />
-                      </div>
-                      <div className="flex items-center gap-2 text-sm text-gray-400 border-t border-gray-100 pt-4 mt-2">
-                        <Lock className="h-4 w-4 shrink-0" />
-                        <span>Unlock to read the full essay and all supplementals</span>
-                      </div>
-                    </div>
-                  );
-                })()}
-
-                {supplementals.map((s, i) => {
-                  const content = s.content ?? "";
-                  const cutoff = Math.floor(content.length * 0.2);
-                  const visible = content.slice(0, cutoff);
-                  const hidden = content.slice(cutoff);
-                  return (
-                    <div key={i} className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm overflow-hidden">
-                      <h2 className="font-semibold text-gray-900 mb-1">Supplemental Essay {i + 1}</h2>
-                      {s.prompt && (
-                        <p className="text-sm text-gray-500 italic mb-4 leading-relaxed border-l-2 border-gray-200 pl-3">
-                          {s.prompt}
-                        </p>
-                      )}
-                      <p className="font-serif text-base text-gray-800 leading-relaxed whitespace-pre-wrap">{visible}</p>
-                      <div className="relative select-none pointer-events-none mt-0">
-                        <p className="font-serif text-base text-gray-700 leading-relaxed whitespace-pre-wrap">{hidden}</p>
-                        <div className="absolute inset-0 bg-gradient-to-b from-transparent from-0% via-white/80 via-30% to-white to-60%" />
-                      </div>
-                      <div className="flex items-center gap-2 text-sm text-gray-400 border-t border-gray-100 pt-4 mt-2">
-                        <Lock className="h-3.5 w-3.5 shrink-0" />
-                        <span>Locked — unlock to read</span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+            <div className="space-y-6">
+              {/* Common App essay */}
+              {app.submittedCommonApp && (
+                <EssayBlock
+                  title="Common App Essay"
+                  prompt={app.commonAppPrompt ?? undefined}
+                  content={app.commonAppContent ?? ""}
+                  isPurchased={isPurchased}
+                  lockLabel="Unlock to read the full essay and all supplementals"
+                />
+              )}
+              {/* Supplementals */}
+              {supplementals.map((s, i) => (
+                <EssayBlock
+                  key={i}
+                  title={`Supplemental Essay ${i + 1}`}
+                  prompt={s.prompt}
+                  content={s.content ?? ""}
+                  isPurchased={isPurchased}
+                  lockLabel="Locked — unlock to read"
+                />
+              ))}
+            </div>
           </div>
         </div>
       </div>

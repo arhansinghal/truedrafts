@@ -59,7 +59,7 @@ export function Navbar() {
         <div className="container mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
           {/* Logo */}
           <Link href="/" className="flex items-center shrink-0">
-            <Image src="/td_text_logo.png" alt="TrueDrafts" width={160} height={48} className="object-contain" unoptimized />
+            <Image src="/td_text_logo.png" alt="TrueDrafts" width={120} height={36} className="object-contain" unoptimized />
           </Link>
 
           {/* Nav links */}
