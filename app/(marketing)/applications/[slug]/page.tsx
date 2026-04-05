@@ -288,29 +288,54 @@ export default async function ApplicationDetailPage({ params, searchParams }: Pr
                 ))}
               </div>
             ) : (
-              /* Paywall preview */
-              <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-                <div className="space-y-4">
-                  {app.submittedCommonApp && (
-                    <div className="rounded-xl bg-gray-50 border border-gray-100 p-4 select-none">
-                      <p className="text-xs font-semibold text-gray-400 mb-2">Common App Essay</p>
-                      <p className="text-sm text-gray-300 blur-sm pointer-events-none font-serif leading-relaxed line-clamp-4">
-                        This essay reveals the writer&apos;s perspective, unique challenges, and what ultimately led to their acceptance. Unlock to read every word.
-                      </p>
+              /* Paywall preview — 20% of content visible, rest faded */
+              <div className="space-y-6">
+                {app.submittedCommonApp && app.commonAppContent && (() => {
+                  const chars = app.commonAppContent!.length;
+                  const previewEnd = Math.floor(chars * 0.2);
+                  const preview = app.commonAppContent!.slice(0, previewEnd);
+                  const rest = app.commonAppContent!.slice(previewEnd);
+                  return (
+                    <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+                      <h2 className="font-semibold text-gray-900 mb-1">Common App Essay</h2>
+                      {app.commonAppPrompt && (
+                        <p className="text-sm text-gray-500 italic mb-4 leading-relaxed border-l-2 border-gray-200 pl-3">
+                          {app.commonAppPrompt}
+                        </p>
+                      )}
+                      <div className="relative">
+                        <p className="font-serif text-base text-gray-800 leading-relaxed whitespace-pre-wrap">{preview}</p>
+                        <div className="relative select-none pointer-events-none">
+                          <p className="font-serif text-base text-gray-800 leading-relaxed whitespace-pre-wrap opacity-20 line-clamp-3">{rest}</p>
+                          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/60 to-white" />
+                        </div>
+                        <div className="mt-4 flex items-center gap-2 text-sm text-gray-400 border-t border-gray-100 pt-4">
+                          <Lock className="h-4 w-4 shrink-0" />
+                          <span>Unlock to read the full essay and all supplementals</span>
+                        </div>
+                      </div>
                     </div>
-                  )}
-                  {supplementals.slice(0, 2).map((_, i) => (
-                    <div key={i} className="rounded-xl bg-gray-50 border border-gray-100 p-4 select-none">
-                      <p className="text-xs font-semibold text-gray-400 mb-2">Supplemental {i + 1}</p>
-                      <p className="text-sm text-gray-300 blur-sm pointer-events-none font-serif leading-relaxed line-clamp-3">
-                        Supplemental essay content is locked. Purchase to read this and all other essays in this application.
+                  );
+                })()}
+
+                {supplementals.slice(0, 2).map((s, i) => (
+                  <div key={i} className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+                    <h2 className="font-semibold text-gray-900 mb-1">Supplemental Essay {i + 1}</h2>
+                    {s.prompt && (
+                      <p className="text-sm text-gray-500 italic mb-4 leading-relaxed border-l-2 border-gray-200 pl-3">
+                        {s.prompt}
                       </p>
+                    )}
+                    <div className="relative select-none pointer-events-none">
+                      <p className="font-serif text-base text-gray-800 leading-relaxed whitespace-pre-wrap opacity-20 line-clamp-2">{s.content}</p>
+                      <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-white" />
                     </div>
-                  ))}
-                </div>
-                <div className="mt-6 text-center text-sm text-gray-400 border-t border-gray-100 pt-4">
-                  Unlock from the panel on the left to access all essays.
-                </div>
+                    <div className="mt-3 flex items-center gap-2 text-sm text-gray-400">
+                      <Lock className="h-3.5 w-3.5 shrink-0" />
+                      <span>Locked — unlock to read</span>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>

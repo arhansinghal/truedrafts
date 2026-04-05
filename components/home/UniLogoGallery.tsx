@@ -42,7 +42,7 @@ const MASK = "linear-gradient(to right, transparent 0%, black 8%, black 92%, tra
 function LogoItem({ slug, name, padding }: { slug: string; name: string; padding: string }) {
   return (
     <Link
-      href={`/university/${slug}`}
+      href={`/applications?university=${slug}`}
       className="group mx-6 flex flex-col items-center gap-2 shrink-0"
       title={`Browse ${name} essays`}
     >

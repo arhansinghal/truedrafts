@@ -35,29 +35,34 @@ export async function POST(
     return Response.json({ error: "Not found" }, { status: 404 });
   }
 
-  // Create an on-the-fly Polar product if needed, then checkout
   try {
     let polarProductId = app.polarProductId;
 
     if (!polarProductId) {
       const product = await polarClient.products.create({
-        name: `${app.title} — ${app.university?.name ?? "University"}`,
-        description: `Full college application. Class of ${app.admittedYear ?? "recent year"}.`,
-        prices: [{ amountType: "fixed", priceAmount: app.priceCents }],
-        recurringInterval: null,
+        name: app.title,
+        description: `Full college application to ${app.university?.name ?? "University"}. Class of ${app.admittedYear ?? 2025}.`,
+        prices: [
+          {
+            amountType: "fixed",
+            priceAmount: app.priceCents,
+            priceCurrency: "usd",
+          },
+        ],
       });
       polarProductId = product.id;
-      // Persist for future checkouts
       await db
         .update(collegeApplications)
         .set({ polarProductId })
         .where(eq(collegeApplications.id, id));
     }
 
+    const appUrl = process.env.NEXT_PUBLIC_URL ?? "http://localhost:3000";
+
     const checkout = await polarClient.checkouts.create({
       products: [polarProductId],
       customerEmail: session.user.email,
-      successUrl: `${process.env.NEXT_PUBLIC_URL}/applications/${app.slug}?purchased=true&checkout_id={CHECKOUT_ID}`,
+      successUrl: `${appUrl}/applications/${app.slug}?purchased=true&checkout_id={CHECKOUT_ID}`,
       metadata: {
         application_id: app.id,
         buyer_id: session.user.id,
@@ -65,8 +70,9 @@ export async function POST(
     });
 
     return Response.json({ url: checkout.url });
-  } catch (err) {
-    console.error("Polar checkout error:", err);
-    return Response.json({ error: "Checkout failed" }, { status: 500 });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("Polar checkout error:", message);
+    return Response.json({ error: "Checkout failed", detail: message }, { status: 500 });
   }
 }
