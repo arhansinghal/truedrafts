@@ -12,6 +12,8 @@ import {
   X,
   Clock,
   FileText,
+  Trash2,
+  DollarSign,
 } from "lucide-react";
 import { timeAgo } from "@/lib/utils";
 import type { CollegeApplication, University, User } from "@/lib/db/schema";
@@ -52,6 +54,8 @@ export function AdminApplicationQueue({ applications }: { applications: AppWithR
   const [rejectReason, setRejectReason] = useState("");
   const [approvingId, setApprovingId] = useState<string | null>(null);
   const [priceInput, setPriceInput] = useState<Record<string, string>>({});
+  const [editingPriceId, setEditingPriceId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [loading, setLoading] = useState<string | null>(null);
   const [saveMsg, setSaveMsg] = useState<Record<string, string>>({});
 
@@ -162,6 +166,48 @@ export function AdminApplicationQueue({ applications }: { applications: AppWithR
         setLocal((prev) => prev.map((a) => a.id === id ? { ...a, status: "rejected", rejectionNote: rejectReason } : a));
         setRejecting(null);
         setRejectReason("");
+      }
+    } finally {
+      setLoading(null);
+    }
+  }
+
+  async function updatePrice(id: string) {
+    const cents = Math.round(parseFloat(priceInput[id] ?? "0") * 100);
+    if (isNaN(cents) || cents < 0) {
+      setSaveMsg({ [id]: "Enter a valid price." });
+      return;
+    }
+    setLoading(id);
+    try {
+      const res = await fetch(`/api/admin/applications/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ priceCents: cents }),
+      });
+      if (res.ok) {
+        setLocal((prev) => prev.map((a) => a.id === id ? { ...a, priceCents: cents } : a));
+        setEditingPriceId(null);
+        setSaveMsg({ [id]: "Price updated!" });
+        setTimeout(() => setSaveMsg({}), 2000);
+      } else {
+        setSaveMsg({ [id]: "Update failed." });
+      }
+    } finally {
+      setLoading(null);
+    }
+  }
+
+  async function deleteApp(id: string) {
+    setLoading(id);
+    try {
+      const res = await fetch(`/api/admin/applications/${id}`, { method: "DELETE" });
+      if (res.ok) {
+        setLocal((prev) => prev.filter((a) => a.id !== id));
+        setDeletingId(null);
+      } else {
+        setSaveMsg({ [id]: "Delete failed." });
+        setDeletingId(null);
       }
     } finally {
       setLoading(null);
@@ -426,6 +472,78 @@ export function AdminApplicationQueue({ applications }: { applications: AppWithR
                 {app.status === "rejected" && app.rejectionNote && (
                   <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
                     <span className="font-medium">Rejection reason:</span> {app.rejectionNote}
+                  </div>
+                )}
+
+                {/* Approved: price edit + delete */}
+                {app.status === "approved" && (
+                  <div className="border-t border-gray-200 pt-4 flex flex-col gap-3">
+                    <div className="flex items-center gap-3 flex-wrap">
+                      {editingPriceId === app.id ? (
+                        <>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium text-gray-700">New price: $</span>
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              placeholder={(app.priceCents / 100).toFixed(2)}
+                              value={priceInput[app.id] ?? ""}
+                              onChange={(e) => setPriceInput({ ...priceInput, [app.id]: e.target.value })}
+                              className="w-28 rounded-md border border-gray-200 bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0851A0]"
+                              autoFocus
+                            />
+                          </div>
+                          <Button
+                            size="sm"
+                            className="gap-1 bg-[#0851A0] text-white hover:bg-[#063d85]"
+                            style={{ background: "#0851A0" }}
+                            disabled={loading === app.id}
+                            onClick={() => updatePrice(app.id)}
+                          >
+                            <Save className="h-3.5 w-3.5" />
+                            {loading === app.id ? "Saving..." : "Save Price"}
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => setEditingPriceId(null)}>Cancel</Button>
+                        </>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-1 text-xs"
+                          onClick={() => { setEditingPriceId(app.id); setPriceInput({ ...priceInput, [app.id]: (app.priceCents / 100).toFixed(2) }); }}
+                        >
+                          <DollarSign className="h-3.5 w-3.5" /> Edit Price (${(app.priceCents / 100).toFixed(2)})
+                        </Button>
+                      )}
+
+                      {deletingId === app.id ? (
+                        <>
+                          <span className="text-sm text-red-600 font-medium">Delete this application?</span>
+                          <Button
+                            size="sm"
+                            className="gap-1 bg-red-600 hover:bg-red-700 text-white"
+                            disabled={loading === app.id}
+                            onClick={() => deleteApp(app.id)}
+                          >
+                            {loading === app.id ? "Deleting..." : "Yes, Delete"}
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => setDeletingId(null)}>Cancel</Button>
+                        </>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-1 text-xs border-red-200 text-red-600 hover:bg-red-50"
+                          onClick={() => setDeletingId(app.id)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" /> Delete
+                        </Button>
+                      )}
+                    </div>
+                    {saveMsg[app.id] && (
+                      <p className="text-sm text-green-600">{saveMsg[app.id]}</p>
+                    )}
                   </div>
                 )}
 

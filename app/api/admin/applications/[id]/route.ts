@@ -1,6 +1,6 @@
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { collegeApplications } from "@/lib/db/schema";
+import { collegeApplications, purchases } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 
 export async function GET(
@@ -66,5 +66,20 @@ export async function PATCH(
   }
 
   await db.update(collegeApplications).set(updates).where(eq(collegeApplications.id, id));
+  return Response.json({ ok: true });
+}
+
+export async function DELETE(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  const session = await auth.api.getSession({ headers: req.headers });
+  if (!session || session.user.role !== "admin") {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  await db.delete(purchases).where(eq(purchases.applicationId, id));
+  await db.delete(collegeApplications).where(eq(collegeApplications.id, id));
   return Response.json({ ok: true });
 }

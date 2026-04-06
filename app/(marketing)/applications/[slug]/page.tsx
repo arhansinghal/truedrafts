@@ -145,7 +145,7 @@ export default async function ApplicationDetailPage({ params, searchParams }: Pr
           </div>
         ) : (
           <>
-            <p className="font-serif text-base text-gray-800 leading-relaxed whitespace-pre-wrap">{visible}</p>
+            <p className="font-serif text-base text-gray-800 leading-relaxed whitespace-pre-wrap select-none pointer-events-none">{visible}</p>
             <div className="relative">
               <p className="font-serif text-base text-gray-700 leading-relaxed whitespace-pre-wrap select-none pointer-events-none">{hidden}</p>
               <div className="absolute inset-0" style={{ background: "linear-gradient(to bottom, transparent 0%, white 50%)" }} />
