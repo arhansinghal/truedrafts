@@ -3,8 +3,6 @@ import { db, essays, universities } from "@/lib/db";
 import { eq, desc } from "drizzle-orm";
 import { generateSlug, computePreview } from "@/lib/utils";
 import { generateEssayTags } from "@/lib/ai";
-import { polarClient } from "@/lib/polar";
-
 export async function GET(req: Request) {
   const session = await auth.api.getSession({ headers: req.headers });
   if (!session || session.user.role !== "writer") {

@@ -1,7 +1,7 @@
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { collegeApplications, purchases } from "@/lib/db/schema";
-import { polarClient } from "@/lib/polar";
+import { stripe } from "@/lib/stripe";
 import { eq, and } from "drizzle-orm";
 
 export async function POST(
@@ -36,36 +36,36 @@ export async function POST(
   }
 
   try {
-    // Always create a fresh product — avoids stale/archived product IDs in sandbox
-    const productName = app.title.length > 64 ? app.title.slice(0, 61) + "..." : app.title;
-    const product = await polarClient.products.create({
-      name: productName,
-      description: `Full college application to ${app.university?.name ?? "University"}. Class of ${app.admittedYear ?? 2025}.`,
-      prices: [
-        {
-          amountType: "fixed",
-          priceAmount: app.priceCents,
-          priceCurrency: "usd",
-        },
-      ],
-    });
-
     const appUrl = process.env.NEXT_PUBLIC_URL ?? "http://localhost:3000";
 
-    const checkout = await polarClient.checkouts.create({
-      products: [product.id],
-      customerEmail: session.user.email,
-      successUrl: `${appUrl}/applications/${app.slug}?purchased=true&checkout_id={CHECKOUT_ID}`,
+    const checkoutSession = await stripe.checkout.sessions.create({
+      mode: "payment",
+      customer_email: session.user.email,
+      line_items: [
+        {
+          quantity: 1,
+          price_data: {
+            currency: "usd",
+            unit_amount: app.priceCents,
+            product_data: {
+              name: app.title.length > 250 ? app.title.slice(0, 247) + "..." : app.title,
+              description: `Full college application to ${app.university?.name ?? "University"}. Class of ${app.admittedYear ?? 2025}.`,
+            },
+          },
+        },
+      ],
       metadata: {
         application_id: app.id,
         buyer_id: session.user.id,
       },
+      success_url: `${appUrl}/applications/${app.slug}?purchased=true&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${appUrl}/applications/${app.slug}`,
     });
 
-    return Response.json({ url: checkout.url });
+    return Response.json({ url: checkoutSession.url });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
-    console.error("Polar checkout error:", message);
+    console.error("Stripe checkout error:", message);
     return Response.json({ error: "Checkout failed", detail: message }, { status: 500 });
   }
 }

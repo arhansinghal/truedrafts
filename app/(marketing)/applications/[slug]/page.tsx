@@ -6,7 +6,7 @@ import { db } from "@/lib/db";
 import { collegeApplications, purchases, writerEarnings } from "@/lib/db/schema";
 import { eq, and, sql } from "drizzle-orm";
 import { auth } from "@/lib/auth";
-import { polarClient } from "@/lib/polar";
+import { stripe } from "@/lib/stripe";
 import { ApplicationPaywall } from "@/components/applications/ApplicationPaywall";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle, Eye, ShoppingBag, ArrowLeft, FileText, Lock } from "lucide-react";
@@ -15,7 +15,7 @@ import type { Metadata } from "next";
 
 interface Props {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ purchased?: string; checkout_id?: string }>;
+  searchParams: Promise<{ purchased?: string; session_id?: string }>;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -61,18 +61,17 @@ export default async function ApplicationDetailPage({ params, searchParams }: Pr
 
     isPurchased = !!existingPurchase || session.user.id === app.writerId;
 
-    // If DB has no record but Polar says payment succeeded, record it now.
-    // This handles sandbox (no webhook) and production race conditions.
-    if (!isPurchased && sp.purchased === "true" && sp.checkout_id) {
+    // If DB has no record but Stripe says payment succeeded, record it now.
+    // This handles race conditions where redirect fires before webhook.
+    if (!isPurchased && sp.purchased === "true" && sp.session_id) {
       try {
-        const checkout = await polarClient.checkouts.get({ id: sp.checkout_id });
-        const meta = checkout.metadata as Record<string, string> | null;
+        const stripeSession = await stripe.checkout.sessions.retrieve(sp.session_id);
         if (
-          checkout.status === "succeeded" &&
-          meta?.application_id === app.id &&
-          meta?.buyer_id === session.user.id
+          stripeSession.payment_status === "paid" &&
+          stripeSession.metadata?.application_id === app.id &&
+          stripeSession.metadata?.buyer_id === session.user.id
         ) {
-          const amountCents = checkout.totalAmount || app.priceCents;
+          const amountCents = stripeSession.amount_total ?? app.priceCents;
           const feeCents = Math.floor(amountCents * 0.5);
           const payoutCents = amountCents - feeCents;
 
@@ -82,11 +81,10 @@ export default async function ApplicationDetailPage({ params, searchParams }: Pr
             amountCents,
             platformFeeCents: feeCents,
             writerPayoutCents: payoutCents,
-            polarOrderId: checkout.id,
+            polarOrderId: stripeSession.id,
             status: "completed",
           }).onConflictDoNothing();
 
-          // Credit writer earnings
           await db.insert(writerEarnings).values({
             writerId: app.writerId,
             availableCents: payoutCents,
@@ -100,7 +98,6 @@ export default async function ApplicationDetailPage({ params, searchParams }: Pr
             },
           });
 
-          // Increment purchase count
           await db.update(collegeApplications)
             .set({ purchases: sql`${collegeApplications.purchases} + 1` })
             .where(eq(collegeApplications.id, app.id));
@@ -108,7 +105,7 @@ export default async function ApplicationDetailPage({ params, searchParams }: Pr
           isPurchased = true;
         }
       } catch {
-        // Polar verification failed — leave isPurchased = false
+        // Stripe verification failed — leave isPurchased = false
       }
     }
   }

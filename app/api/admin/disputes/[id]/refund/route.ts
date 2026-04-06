@@ -1,8 +1,8 @@
 import { auth } from "@/lib/auth";
 import { db, purchases, writerEarnings, essays } from "@/lib/db";
 import { collegeApplications } from "@/lib/db/schema";
+import { stripe } from "@/lib/stripe";
 import { eq, sql } from "drizzle-orm";
-import { polarClient } from "@/lib/polar";
 
 export async function POST(
   req: Request,
@@ -20,18 +20,19 @@ export async function POST(
   if (!purchase) return Response.json({ error: "Not found" }, { status: 404 });
   if (purchase.status === "refunded") return Response.json({ error: "Already refunded" }, { status: 400 });
 
-  // Issue refund via Polar if there's a polar order ID
+  // Issue refund via Stripe if there's a session ID stored
   if (purchase.polarOrderId) {
     try {
-      await polarClient.refunds.create({
-        orderId: purchase.polarOrderId,
-        amount: purchase.amountCents,
-        reason: "customer_request",
-        revokeBenefits: true,
-      });
+      const session = await stripe.checkout.sessions.retrieve(purchase.polarOrderId);
+      if (session.payment_intent) {
+        await stripe.refunds.create({
+          payment_intent: session.payment_intent as string,
+          reason: "requested_by_customer",
+        });
+      }
     } catch (err) {
-      console.error("Polar refund error:", err);
-      // Continue with local DB update even if Polar fails
+      console.error("Stripe refund error:", err);
+      // Continue with local DB update even if Stripe fails
     }
   }
 
