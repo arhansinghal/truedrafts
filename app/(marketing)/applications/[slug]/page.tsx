@@ -139,14 +139,10 @@ export default async function ApplicationDetailPage({ params, searchParams }: Pr
         )}
         {purchased ? (
           <div
-            className="relative"
+            className="relative essay-protected"
             style={{ backgroundImage: watermarkSvg, backgroundRepeat: "repeat" }}
           >
-            <p
-              className="font-serif text-base text-gray-800 leading-relaxed whitespace-pre-wrap select-none"
-              onCopy={(e) => e.preventDefault()}
-              onCut={(e) => e.preventDefault()}
-            >
+            <p className="font-serif text-base text-gray-800 leading-relaxed whitespace-pre-wrap">
               {content}
             </p>
           </div>

@@ -108,3 +108,17 @@
 .essay-content p + p {
   margin-top: 1.25em;
 }
+
+/* Purchased essay — no selection, no copy */
+.essay-protected {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.essay-protected::selection,
+.essay-protected *::selection {
+  background: transparent;
+}
