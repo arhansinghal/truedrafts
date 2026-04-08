@@ -2,22 +2,30 @@
  * Test script — sends all 6 email types to a test address.
  * Usage: npx tsx scripts/test-emails.ts your@email.com
  */
-import {
-  sendForgotPasswordEmail,
-  sendVerifyEmail,
-  sendPurchaseBuyerEmail,
-  sendPurchaseSellerEmail,
-  sendApplicationApprovedEmail,
-  sendApplicationRejectedEmail,
-} from "../lib/email";
-import { db, users, collegeApplications } from "../lib/db";
+import { config } from "dotenv";
+import { resolve } from "path";
+config({ path: resolve(process.cwd(), ".env.local") });
 
+// Allow self-signed / intermediate certs in local Node.js (test script only)
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+
+// Dynamic imports AFTER dotenv has loaded env vars
 async function main() {
   const testEmail = process.argv[2];
   if (!testEmail) {
     console.error("Usage: npx tsx scripts/test-emails.ts your@email.com");
     process.exit(1);
   }
+
+  const {
+    sendForgotPasswordEmail,
+    sendVerifyEmail,
+    sendPurchaseBuyerEmail,
+    sendPurchaseSellerEmail,
+    sendApplicationApprovedEmail,
+    sendApplicationRejectedEmail,
+  } = await import("../lib/email.js");
+  const { db } = await import("../lib/db/index.js");
 
   console.log(`Sending all email types to ${testEmail}…\n`);
 
@@ -39,7 +47,7 @@ async function main() {
 
   // 3-6. Use real DB records if available
   const firstApp = await db.query.collegeApplications.findFirst({
-    where: (t, { eq }) => eq(t.status, "approved"),
+    where: (t: any, { eq }: any) => eq(t.status, "approved"),
     with: { university: true, writer: { columns: { id: true, email: true } } },
   });
 
