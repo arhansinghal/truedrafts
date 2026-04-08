@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { collegeApplications } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
+import { sendApplicationRejectedEmail } from "@/lib/email";
 
 export async function POST(
   req: Request,
@@ -27,6 +28,8 @@ export async function POST(
     .update(collegeApplications)
     .set({ status: "rejected", rejectionNote: reason })
     .where(eq(collegeApplications.id, id));
+
+  sendApplicationRejectedEmail(app.writerId, id, reason).catch(console.error);
 
   return Response.json({ ok: true });
 }

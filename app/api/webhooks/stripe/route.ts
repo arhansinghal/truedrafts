@@ -1,8 +1,9 @@
 import { stripe } from "@/lib/stripe";
 import { db } from "@/lib/db";
-import { purchases, writerEarnings, collegeApplications, essays } from "@/lib/db/schema";
-import { eq, sql, and } from "drizzle-orm";
+import { purchases, writerEarnings, collegeApplications } from "@/lib/db/schema";
+import { eq, sql } from "drizzle-orm";
 import type Stripe from "stripe";
+import { sendPurchaseBuyerEmail, sendPurchaseSellerEmail } from "@/lib/email";
 
 export async function POST(req: Request) {
   const body = await req.text();
@@ -76,6 +77,12 @@ export async function POST(req: Request) {
           updatedAt: new Date(),
         },
       });
+
+      // Send confirmation emails (non-blocking)
+      Promise.all([
+        sendPurchaseBuyerEmail(buyerId, applicationId),
+        sendPurchaseSellerEmail(app.writerId, applicationId),
+      ]).catch(console.error);
     }
   }
 

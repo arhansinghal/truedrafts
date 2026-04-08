@@ -88,6 +88,23 @@ ${essayText}`;
 }
 
 // ---------------------------------------------------------------------------
+// Essay highlight — one compelling sentence for approval email
+// ---------------------------------------------------------------------------
+export async function getEssayHighlight(essayText: string): Promise<string | null> {
+  if (!process.env.GEMINI_API_KEY) return null;
+  try {
+    const result = await getAI().models.generateContent({
+      model: PARSER_MODEL,
+      contents: `Extract the single most compelling, vivid sentence from this college essay. Return only that sentence, nothing else.\n\nESSAY:\n${essayText.slice(0, 3000)}`,
+      config: { temperature: 0.1, maxOutputTokens: 100 },
+    });
+    return result.text?.trim().replace(/^["']|["']$/g, "") ?? null;
+  } catch {
+    return null;
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Search intent parser — called on every vibe search
 // ---------------------------------------------------------------------------
 export async function parseSearchQuery(query: string): Promise<SearchIntent | null> {

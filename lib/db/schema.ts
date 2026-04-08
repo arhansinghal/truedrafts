@@ -265,6 +265,18 @@ export const collegeApplications = pgTable("college_applications", {
   vibeSearchText: text("vibe_search_text"), // flat string of all AI terms — used for ILIKE vibe search
 });
 
+export const emailLogs = pgTable("email_logs", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  recipientEmail: text("recipient_email").notNull(),
+  subject: text("subject").notNull(),
+  type: text("type").notNull(), // forgot_password | verify_email | purchase_buyer | purchase_seller | app_approved | app_rejected
+  status: text("status").notNull().default("sent"), // sent | failed
+  resendId: text("resend_id"),
+  metadata: text("metadata").default("{}"),
+  error: text("error"),
+  sentAt: timestamp("sent_at").defaultNow(),
+});
+
 export const applicationDrafts = pgTable("application_drafts", {
   id: uuid("id").primaryKey().defaultRandom(),
   writerId: text("writer_id").notNull().references(() => users.id, { onDelete: "cascade" }),
