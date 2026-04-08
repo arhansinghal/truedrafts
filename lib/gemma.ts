@@ -6,8 +6,8 @@ function getAI() {
   return _ai;
 }
 
-const TAGGER_MODEL = "gemini-2.0-flash";
-const PARSER_MODEL = "gemini-2.0-flash";
+const TAGGER_MODEL = "gemini-1.5-flash";
+const PARSER_MODEL = "gemini-1.5-flash";
 
 export interface EssayVibeMetadata {
   tone: string;

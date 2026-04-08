@@ -23,6 +23,7 @@ export async function POST(req: Request) {
 
   let tagged = 0;
   let failed = 0;
+  const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
   for (const app of untagged) {
     const essayText = [
@@ -46,7 +47,7 @@ export async function POST(req: Request) {
       console.error(`retag failed for ${app.id}:`, e instanceof Error ? e.message : e);
       return null;
     });
-    if (!meta) { failed++; continue; }
+    if (!meta) { failed++; await delay(4000); continue; }
 
     await db
       .update(collegeApplications)
@@ -58,6 +59,7 @@ export async function POST(req: Request) {
       .where(eq(collegeApplications.id, app.id));
 
     tagged++;
+    await delay(4000); // stay within free tier (15 RPM)
   }
 
   return Response.json({ tagged, failed, total: untagged.length });
