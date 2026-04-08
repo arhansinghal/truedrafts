@@ -1,7 +1,7 @@
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { collegeApplications } from "@/lib/db/schema";
-import { eq, isNull } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { tagEssay, buildVibeSearchText } from "@/lib/gemma";
 
 /**
@@ -42,7 +42,10 @@ export async function POST(req: Request) {
 
     if (!essayText) { failed++; continue; }
 
-    const meta = await tagEssay(essayText);
+    const meta = await tagEssay(essayText).catch((e: unknown) => {
+      console.error(`retag failed for ${app.id}:`, e instanceof Error ? e.message : e);
+      return null;
+    });
     if (!meta) { failed++; continue; }
 
     await db

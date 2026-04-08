@@ -6,8 +6,8 @@ function getAI() {
   return _ai;
 }
 
-const TAGGER_MODEL = "gemma-4-31b-it";
-const PARSER_MODEL = "gemma-4-26b-a4b-it";
+const TAGGER_MODEL = "gemini-2.0-flash";
+const PARSER_MODEL = "gemini-2.0-flash";
 
 export interface EssayVibeMetadata {
   tone: string;
@@ -71,7 +71,6 @@ ${essayText}`;
       model: TAGGER_MODEL,
       contents: prompt,
       config: {
-        thinkingConfig: { thinkingBudget: 8192 },
         responseMimeType: "application/json",
         temperature: 0.2,
         maxOutputTokens: 512,
