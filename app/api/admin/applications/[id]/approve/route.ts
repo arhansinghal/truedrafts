@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { collegeApplications } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
+import { tagEssay } from "@/lib/gemma";
 
 export async function POST(
   req: Request,
@@ -35,6 +36,22 @@ export async function POST(
       publishedAt: new Date(),
     })
     .where(eq(collegeApplications.id, id));
+
+  // Tag the essay asynchronously — doesn't block the approval response
+  const essayText = [
+    app.commonAppContent ?? "",
+    ...(() => { try { return JSON.parse(app.supplementals ?? "[]").map((s: {content?: string}) => s.content ?? ""); } catch { return []; } })(),
+  ].filter(Boolean).join("\n\n");
+
+  if (essayText) {
+    tagEssay(essayText).then(async (meta) => {
+      if (!meta) return;
+      await db.update(collegeApplications).set({
+        vibeMetadata: JSON.stringify(meta),
+        vibeTone: meta.tone,
+      }).where(eq(collegeApplications.id, id));
+    }).catch(console.error);
+  }
 
   return Response.json({ ok: true });
 }

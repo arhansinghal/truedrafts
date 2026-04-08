@@ -259,6 +259,9 @@ export const collegeApplications = pgTable("college_applications", {
   rejectionNote: text("rejection_note"),
   createdAt: timestamp("created_at").defaultNow(),
   publishedAt: timestamp("published_at"),
+  // Vibe Search
+  vibeMetadata: text("vibe_metadata"), // JSON: {tone, core_values, narrative_arc, vibe_summary}
+  vibeTone: text("vibe_tone"),         // extracted for SQL filtering
 });
 
 export const applicationDrafts = pgTable("application_drafts", {

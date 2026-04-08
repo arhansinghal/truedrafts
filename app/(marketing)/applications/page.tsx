@@ -26,11 +26,12 @@ const SORT_OPTIONS = {
 export default async function ApplicationsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ sort?: string; university?: string; page?: string; q?: string; year?: string }>;
+  searchParams: Promise<{ sort?: string; university?: string; page?: string; q?: string; year?: string; vibe_tone?: string; detected_uni?: string }>;
 }) {
   const params = await searchParams;
   const sort = (params.sort ?? "newest") as keyof typeof SORT_OPTIONS;
-  const uniSlug = params.university;
+  const uniSlug = params.university ?? params.detected_uni;
+  const vibeTone = params.vibe_tone?.trim();
   const searchQuery = params.q?.trim();
   const page = Math.max(1, parseInt(params.page ?? "1"));
   const selectedYears = params.year
@@ -56,6 +57,9 @@ export default async function ApplicationsPage({
   }
   if (selectedYears.length > 0) {
     whereConditions.push(inArray(collegeApplications.admittedYear, selectedYears));
+  }
+  if (vibeTone) {
+    whereConditions.push(eq(collegeApplications.vibeTone, vibeTone));
   }
 
   // Fetch applications in parallel with universities (universities resolved above, used for filter only)
