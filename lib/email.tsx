@@ -6,7 +6,7 @@
 import { render } from "@react-email/render";
 import { Resend } from "resend";
 import { db, users, collegeApplications, writerEarnings } from "./db";
-import { emailLogs, purchases } from "./db/schema";
+import { emailLogs } from "./db/schema";
 import { eq, and, gte, count } from "drizzle-orm";
 import { formatCents } from "./utils";
 
@@ -17,7 +17,7 @@ import PurchaseSellerEmail from "@/emails/PurchaseSeller";
 import ApplicationApprovedEmail from "@/emails/ApplicationApproved";
 import ApplicationRejectedEmail from "@/emails/ApplicationRejected";
 
-const FROM = "TrueDrafts <noreply@truedrafts.com>";
+const FROM = "TrueDrafts <team@truedrafts.com>";
 const APP_URL = process.env.NEXT_PUBLIC_URL ?? "https://truedrafts.com";
 
 function getResend(): Resend | null {
