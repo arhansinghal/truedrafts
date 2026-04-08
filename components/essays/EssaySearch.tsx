@@ -35,11 +35,16 @@ export function EssaySearch({ currentSearch }: { currentSearch?: string }) {
         } else {
           params.delete("vibe_tone");
         }
-        // If a university was detected and none is already selected, apply it
+        if (intent.themes?.length > 0) {
+          params.set("vibe_themes", intent.themes.join(","));
+        } else {
+          params.delete("vibe_themes");
+        }
         if (intent.target_uni && !searchParams.get("university")) {
           params.set("detected_uni", intent.target_uni);
+        } else {
+          params.delete("detected_uni");
         }
-        // Use semantic keywords as the actual text search term
         if (intent.semantic_keywords) {
           params.set("q", intent.semantic_keywords);
         }
@@ -66,6 +71,7 @@ export function EssaySearch({ currentSearch }: { currentSearch?: string }) {
     const params = new URLSearchParams(searchParams.toString());
     params.delete("q");
     params.delete("vibe_tone");
+    params.delete("vibe_themes");
     params.delete("detected_uni");
     params.delete("page");
     router.push(`${pathname}?${params.toString()}`);

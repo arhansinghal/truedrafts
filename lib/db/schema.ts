@@ -260,8 +260,9 @@ export const collegeApplications = pgTable("college_applications", {
   createdAt: timestamp("created_at").defaultNow(),
   publishedAt: timestamp("published_at"),
   // Vibe Search
-  vibeMetadata: text("vibe_metadata"), // JSON: {tone, core_values, narrative_arc, vibe_summary}
-  vibeTone: text("vibe_tone"),         // extracted for SQL filtering
+  vibeMetadata: text("vibe_metadata"),   // JSON: {tone, core_values, narrative_arc, vibe_summary, themes}
+  vibeTone: text("vibe_tone"),           // extracted for SQL filtering
+  vibeSearchText: text("vibe_search_text"), // flat string of all AI terms — used for ILIKE vibe search
 });
 
 export const applicationDrafts = pgTable("application_drafts", {

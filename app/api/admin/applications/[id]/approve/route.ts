@@ -2,7 +2,7 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { collegeApplications } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import { tagEssay } from "@/lib/gemma";
+import { tagEssay, buildVibeSearchText } from "@/lib/gemma";
 
 export async function POST(
   req: Request,
@@ -49,6 +49,7 @@ export async function POST(
       await db.update(collegeApplications).set({
         vibeMetadata: JSON.stringify(meta),
         vibeTone: meta.tone,
+        vibeSearchText: buildVibeSearchText(meta),
       }).where(eq(collegeApplications.id, id));
     }).catch(console.error);
   }

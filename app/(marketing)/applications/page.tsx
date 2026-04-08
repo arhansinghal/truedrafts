@@ -26,12 +26,13 @@ const SORT_OPTIONS = {
 export default async function ApplicationsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ sort?: string; university?: string; page?: string; q?: string; year?: string; vibe_tone?: string; detected_uni?: string }>;
+  searchParams: Promise<{ sort?: string; university?: string; page?: string; q?: string; year?: string; vibe_tone?: string; vibe_themes?: string; detected_uni?: string }>;
 }) {
   const params = await searchParams;
   const sort = (params.sort ?? "newest") as keyof typeof SORT_OPTIONS;
-  const uniSlug = params.university ?? params.detected_uni;
-  const vibeTone = params.vibe_tone?.trim();
+  const uniSlug = params.university;
+  const detectedUni = params.detected_uni?.trim();
+  const vibeThemes = params.vibe_themes ? params.vibe_themes.split(",").map(t => t.trim()).filter(Boolean) : [];
   const searchQuery = params.q?.trim();
   const page = Math.max(1, parseInt(params.page ?? "1"));
   const selectedYears = params.year
@@ -46,20 +47,45 @@ export default async function ApplicationsPage({
 
   let uniId: string | undefined;
   if (uniSlug) {
-    const uni = allUniversities.find((u) => u.slug === uniSlug);
-    uniId = uni?.id;
+    uniId = allUniversities.find((u) => u.slug === uniSlug)?.id;
+  } else if (detectedUni) {
+    // Fuzzy match: "Penn" → "University of Pennsylvania", "upenn", etc.
+    const q = detectedUni.toLowerCase();
+    uniId = allUniversities.find(
+      (u) =>
+        u.name.toLowerCase().includes(q) ||
+        u.slug.toLowerCase().includes(q) ||
+        q.includes(u.slug.toLowerCase())
+    )?.id;
   }
 
   const whereConditions = [eq(collegeApplications.status, "approved")];
   if (uniId) whereConditions.push(eq(collegeApplications.universityId, uniId));
-  if (searchQuery) {
-    whereConditions.push(or(ilike(collegeApplications.title, `%${searchQuery}%`))!);
-  }
   if (selectedYears.length > 0) {
     whereConditions.push(inArray(collegeApplications.admittedYear, selectedYears));
   }
-  if (vibeTone) {
-    whereConditions.push(eq(collegeApplications.vibeTone, vibeTone));
+
+  if (vibeThemes.length > 0) {
+    // Search vibeSearchText (AI tags) AND title + content for each theme
+    const themeConditions = vibeThemes.map((theme) =>
+      or(
+        ilike(collegeApplications.vibeSearchText, `%${theme}%`),
+        ilike(collegeApplications.title, `%${theme}%`),
+        ilike(collegeApplications.commonAppContent, `%${theme}%`),
+        ilike(collegeApplications.supplementals, `%${theme}%`),
+      )!
+    );
+    whereConditions.push(or(...themeConditions)!);
+  } else if (searchQuery) {
+    // Plain text fallback — search title + essay content
+    whereConditions.push(
+      or(
+        ilike(collegeApplications.title, `%${searchQuery}%`),
+        ilike(collegeApplications.commonAppContent, `%${searchQuery}%`),
+        ilike(collegeApplications.supplementals, `%${searchQuery}%`),
+        ilike(collegeApplications.vibeSearchText, `%${searchQuery}%`),
+      )!
+    );
   }
 
   // Fetch applications in parallel with universities (universities resolved above, used for filter only)
