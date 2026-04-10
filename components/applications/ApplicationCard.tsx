@@ -1,8 +1,16 @@
 import Link from "next/link";
 import Image from "next/image";
-import { ShoppingBag, Eye, FileText, User as UserIcon } from "lucide-react";
+import { ShoppingBag, Eye, FileText, User as UserIcon, Sparkles } from "lucide-react";
 import { formatCents } from "@/lib/utils";
 import type { CollegeApplication, University, User } from "@/lib/db/schema";
+
+interface InsightBrief {
+  essay_focus:       string;
+  applicant_profile: string;
+  why_it_worked:     string;
+  tone_signature:    string;
+  standout_quote:    string;
+}
 
 type AppWithRelations = CollegeApplication & {
   university: University;
@@ -13,6 +21,9 @@ export function ApplicationCard({ application: app }: { application: AppWithRela
   let supplementalCount = 0;
   try { supplementalCount = JSON.parse(app.supplementals ?? "[]").length; } catch { supplementalCount = 0; }
   const essayCount = (app.submittedCommonApp ? 1 : 0) + supplementalCount;
+
+  let brief: InsightBrief | null = null;
+  try { brief = app.insightBrief ? JSON.parse(app.insightBrief) : null; } catch { brief = null; }
 
   return (
     <Link href={`/applications/${app.slug}`}>
@@ -43,14 +54,30 @@ export function ApplicationCard({ application: app }: { application: AppWithRela
           {app.title}
         </h3>
 
-        {/* Tags */}
-        {(app.tags ?? []).length > 0 && (
+        {/* Insight Brief — AI-generated, shown when available */}
+        {brief ? (
+          <div className="mb-3 rounded-xl bg-blue-50/60 border border-blue-100 px-3 py-2.5 space-y-1.5">
+            <div className="flex items-center gap-1 mb-1">
+              <Sparkles className="h-3 w-3 text-[#0851A0]" />
+              <span className="text-[10px] font-semibold text-[#0851A0] uppercase tracking-wide">AI Insight</span>
+            </div>
+            <p className="text-xs text-gray-700 leading-snug line-clamp-2">
+              <span className="font-medium">Focus:</span> {brief.essay_focus}
+            </p>
+            <p className="text-xs text-gray-500 leading-snug line-clamp-1">
+              <span className="font-medium">Profile:</span> {brief.applicant_profile}
+            </p>
+            <p className="text-[10px] text-gray-400 italic leading-snug line-clamp-1">
+              &ldquo;{brief.standout_quote}&rdquo;
+            </p>
+          </div>
+        ) : (app.tags ?? []).length > 0 ? (
           <div className="flex flex-wrap gap-1 mb-3">
             {(app.tags ?? []).slice(0, 3).map((t) => (
               <span key={t} className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] text-gray-500">{t}</span>
             ))}
           </div>
-        )}
+        ) : null}
 
         {/* Writer row — anonymous */}
         <div className="flex items-center gap-2 mb-3 mt-auto">

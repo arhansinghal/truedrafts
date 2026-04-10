@@ -263,6 +263,8 @@ export const collegeApplications = pgTable("college_applications", {
   vibeMetadata: text("vibe_metadata"),   // JSON: {tone, core_values, narrative_arc, vibe_summary, themes}
   vibeTone: text("vibe_tone"),           // extracted for SQL filtering
   vibeSearchText: text("vibe_search_text"), // flat string of all AI terms — used for ILIKE vibe search
+  // AI Insight Brief — generated once at approval by Python AI service
+  insightBrief: text("insight_brief"),   // JSON: {essay_focus, applicant_profile, why_it_worked, tone_signature, standout_quote}
 });
 
 export const emailLogs = pgTable("email_logs", {

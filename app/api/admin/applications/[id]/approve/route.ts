@@ -48,13 +48,30 @@ export async function POST(
     Promise.all([
       tagEssay(essayText),
       getEssayHighlight(essayText),
-    ]).then(async ([meta, highlight]) => {
+      // Generate AI Insight Brief via Python service (if configured)
+      process.env.AI_SERVICE_URL
+        ? fetch(`${process.env.AI_SERVICE_URL}/brief`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ application_id: id, essay_text: essayText }),
+            signal: AbortSignal.timeout(10000),
+          }).then(r => r.ok ? r.json() : null).catch(() => null)
+        : Promise.resolve(null),
+    ]).then(async ([meta, highlight, briefResult]) => {
+      const updates: Record<string, unknown> = {};
       if (meta) {
-        await db.update(collegeApplications).set({
-          vibeMetadata: JSON.stringify(meta),
-          vibeTone: meta.tone,
-          vibeSearchText: buildVibeSearchText(meta),
-        }).where(eq(collegeApplications.id, id));
+        updates.vibeMetadata   = JSON.stringify(meta);
+        updates.vibeTone       = meta.tone;
+        updates.vibeSearchText = buildVibeSearchText(meta);
+      }
+      // briefResult.brief is already saved to DB by the Python service,
+      // but we store it here too for resilience
+      if (briefResult?.brief && !briefResult?.cached) {
+        updates.insightBrief = JSON.stringify(briefResult.brief);
+      }
+      if (Object.keys(updates).length > 0) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await db.update(collegeApplications).set(updates as any).where(eq(collegeApplications.id, id));
       }
       await sendApplicationApprovedEmail(app.writerId, id, highlight);
     }).catch(console.error);
