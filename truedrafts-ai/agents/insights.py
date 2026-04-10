@@ -1,5 +1,5 @@
 """
-THE INSIGHTS GENERATOR — Qwen3-30B-A3B via SiliconFlow
+THE INSIGHTS GENERATOR — Qwen3-235B-A22B via Together AI
 Generates a structured Insight Brief for a college essay.
 Called once at approval time; result cached in `insight_brief` DB column.
 """
@@ -7,8 +7,8 @@ from __future__ import annotations
 import json, os
 from openai import AsyncOpenAI
 
-SILICONFLOW_BASE  = "https://api.siliconflow.cn/v1"
-INSIGHTS_MODEL    = "Qwen/Qwen3-30B-A3B"   # 30B MoE, ~3B active params — fast & cheap
+TOGETHER_BASE  = "https://api.together.xyz/v1"
+INSIGHTS_MODEL = "Qwen/Qwen3-235B-A22B"   # 235B MoE, 22B active — best quality at low cost
 
 _client_cache: AsyncOpenAI | None = None
 
@@ -17,14 +17,13 @@ def _client() -> AsyncOpenAI:
     global _client_cache
     if _client_cache is None:
         _client_cache = AsyncOpenAI(
-            api_key=os.environ["SILICONFLOW_API_KEY"],
-            base_url=SILICONFLOW_BASE,
+            api_key=os.environ["TOGETHER_API_KEY"],
+            base_url=TOGETHER_BASE,
         )
     return _client_cache
 
 
-SYSTEM_PROMPT = """/no_think
-You are an expert college admissions analyst. Given essay text (and optional activity list), produce a concise JSON Insight Brief that helps a prospective buyer quickly understand the essay's value.
+SYSTEM_PROMPT = """You are an expert college admissions analyst. Given essay text (and optional activity list), produce a concise JSON Insight Brief that helps a prospective buyer quickly understand the essay's value.
 
 Return ONLY valid JSON — no markdown, no explanation.
 

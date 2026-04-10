@@ -1,5 +1,5 @@
 """
-THE PARSER — GLM-4.5-Air via SiliconFlow
+THE PARSER — Qwen2.5-7B-Instruct-Turbo via Together AI
 Converts a natural-language search query into a structured SearchIntent object.
 Fast, cheap (~$0.0001/call), 128K context.
 """
@@ -7,8 +7,8 @@ from __future__ import annotations
 import json, os, re
 from openai import AsyncOpenAI
 
-SILICONFLOW_BASE = "https://api.siliconflow.cn/v1"
-PARSER_MODEL     = "THUDM/GLM-4.5-Air"
+TOGETHER_BASE = "https://api.together.xyz/v1"
+PARSER_MODEL  = "Qwen/Qwen2.5-7B-Instruct-Turbo"
 
 _TONE_ALIASES = {
     "funny": "witty", "humorous": "witty", "sad": "vulnerable",
@@ -37,8 +37,8 @@ Rules:
 
 def _client() -> AsyncOpenAI:
     return AsyncOpenAI(
-        api_key=os.environ["SILICONFLOW_API_KEY"],
-        base_url=SILICONFLOW_BASE,
+        api_key=os.environ["TOGETHER_API_KEY"],
+        base_url=TOGETHER_BASE,
     )
 
 

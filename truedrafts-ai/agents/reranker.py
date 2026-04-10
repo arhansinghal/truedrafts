@@ -1,5 +1,5 @@
 """
-THE RERANKER — Qwen3-30B-A3B with Chain-of-Thought thinking
+THE RERANKER — Qwen3-235B-A22B via Together AI
 Scores a set of Insight Briefs against a SearchIntent.
 Used post-retrieval to re-sort the top-K results by true relevance.
 """
@@ -7,8 +7,8 @@ from __future__ import annotations
 import asyncio, json, os
 from openai import AsyncOpenAI
 
-SILICONFLOW_BASE = "https://api.siliconflow.cn/v1"
-RERANKER_MODEL   = "Qwen/Qwen3-30B-A3B"   # same MoE model with /think enabled below
+TOGETHER_BASE  = "https://api.together.xyz/v1"
+RERANKER_MODEL = "Qwen/Qwen3-235B-A22B"
 
 _client_cache: AsyncOpenAI | None = None
 
@@ -17,14 +17,13 @@ def _client() -> AsyncOpenAI:
     global _client_cache
     if _client_cache is None:
         _client_cache = AsyncOpenAI(
-            api_key=os.environ["SILICONFLOW_API_KEY"],
-            base_url=SILICONFLOW_BASE,
+            api_key=os.environ["TOGETHER_API_KEY"],
+            base_url=TOGETHER_BASE,
         )
     return _client_cache
 
 
-SYSTEM_PROMPT = """/think
-You are a college essay relevance judge. A buyer has searched for essays using a specific intent.
+SYSTEM_PROMPT = """You are a college essay relevance judge. A buyer has searched for essays using a specific intent.
 For each essay brief provided, output a JSON array of scores.
 
 Return ONLY a JSON array — no markdown, no explanation.
@@ -52,8 +51,6 @@ async def _score_one(client: AsyncOpenAI, essay_id: str, intent: dict, brief: di
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user",   "content": user_content},
             ],
-            # SiliconFlow: enable thinking for Qwen3 via extra_body
-            extra_body={"enable_thinking": True},
             temperature=0.1,
             max_tokens=512,
         )
