@@ -1,14 +1,15 @@
 """
-THE INSIGHTS GENERATOR — Qwen3-235B-A22B via Together AI
+THE INSIGHTS GENERATOR — llama-3.3-70b-versatile via Groq
 Generates a structured Insight Brief for a college essay.
 Called once at approval time; result cached in `insight_brief` DB column.
+Free tier: 14,400 req/day.
 """
 from __future__ import annotations
 import json, os
 from openai import AsyncOpenAI
 
-TOGETHER_BASE  = "https://api.together.xyz/v1"
-INSIGHTS_MODEL = "Qwen/Qwen3-235B-A22B"   # 235B MoE, 22B active — best quality at low cost
+GROQ_BASE      = "https://api.groq.com/openai/v1"
+INSIGHTS_MODEL = "llama-3.3-70b-versatile"
 
 _client_cache: AsyncOpenAI | None = None
 
@@ -17,8 +18,8 @@ def _client() -> AsyncOpenAI:
     global _client_cache
     if _client_cache is None:
         _client_cache = AsyncOpenAI(
-            api_key=os.environ["TOGETHER_API_KEY"],
-            base_url=TOGETHER_BASE,
+            api_key=os.environ["GROQ_API_KEY"],
+            base_url=GROQ_BASE,
         )
     return _client_cache
 

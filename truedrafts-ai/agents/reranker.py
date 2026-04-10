@@ -1,5 +1,5 @@
 """
-THE RERANKER — Qwen3-235B-A22B via Together AI
+THE RERANKER — llama-3.3-70b-versatile via Groq
 Scores a set of Insight Briefs against a SearchIntent.
 Used post-retrieval to re-sort the top-K results by true relevance.
 """
@@ -7,8 +7,8 @@ from __future__ import annotations
 import asyncio, json, os
 from openai import AsyncOpenAI
 
-TOGETHER_BASE  = "https://api.together.xyz/v1"
-RERANKER_MODEL = "Qwen/Qwen3-235B-A22B"
+GROQ_BASE      = "https://api.groq.com/openai/v1"
+RERANKER_MODEL = "llama-3.3-70b-versatile"
 
 _client_cache: AsyncOpenAI | None = None
 
@@ -17,8 +17,8 @@ def _client() -> AsyncOpenAI:
     global _client_cache
     if _client_cache is None:
         _client_cache = AsyncOpenAI(
-            api_key=os.environ["TOGETHER_API_KEY"],
-            base_url=TOGETHER_BASE,
+            api_key=os.environ["GROQ_API_KEY"],
+            base_url=GROQ_BASE,
         )
     return _client_cache
 

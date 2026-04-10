@@ -1,14 +1,14 @@
 """
-THE PARSER — Qwen2.5-7B-Instruct-Turbo via Together AI
+THE PARSER — llama-3.1-8b-instant via Groq
 Converts a natural-language search query into a structured SearchIntent object.
-Fast, cheap (~$0.0001/call), 128K context.
+Free tier: 14,400 req/day. Fastest inference available.
 """
 from __future__ import annotations
 import json, os, re
 from openai import AsyncOpenAI
 
-TOGETHER_BASE = "https://api.together.xyz/v1"
-PARSER_MODEL  = "Qwen/Qwen2.5-7B-Instruct-Turbo"
+GROQ_BASE    = "https://api.groq.com/openai/v1"
+PARSER_MODEL = "llama-3.1-8b-instant"
 
 _TONE_ALIASES = {
     "funny": "witty", "humorous": "witty", "sad": "vulnerable",
@@ -37,8 +37,8 @@ Rules:
 
 def _client() -> AsyncOpenAI:
     return AsyncOpenAI(
-        api_key=os.environ["TOGETHER_API_KEY"],
-        base_url=TOGETHER_BASE,
+        api_key=os.environ["GROQ_API_KEY"],
+        base_url=GROQ_BASE,
     )
 
 
