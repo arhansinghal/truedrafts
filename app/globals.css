@@ -5,6 +5,38 @@
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
     --ring: 221.2 83.2% 53.3%;
+
+    /* ── "Manuscript" redesign tokens ─────────────────────────────────────
+       Additive: only takes effect where referenced (writer dashboard +
+       application reader). Pulled verbatim from the design bundle. */
+    --ink:         #14233B;
+    --ink-soft:    #41506A;
+    --ink-faint:   #76819A;
+
+    --td-blue:     #0851A0;
+    --td-blue-deep:#063D85;
+    --blue-wash:   #EEF4FB;
+    --blue-line:   #D4E3F3;
+
+    --paper:       #FBFAF6;
+    --paper-2:     #F4F1E8;
+    --surface:     #FFFFFF;
+    --line:        #E8E3D6;
+    --line-soft:   #F0ECE1;
+
+    --emerald:     #1C7A57;
+    --emerald-wash:#E9F4EF;
+    --amber:       #9A6B12;
+    --amber-wash:  #F8F0DC;
+    --td-red:      #B23A2E;
+    --red-wash:    #F8ECEA;
+
+    --shadow-sm:   0 1px 2px rgba(20, 35, 59, 0.05);
+    --shadow:      0 1px 2px rgba(20, 35, 59, 0.05), 0 10px 30px -16px rgba(20, 35, 59, 0.18);
+    --shadow-lg:   0 2px 6px rgba(20, 35, 59, 0.06), 0 24px 60px -24px rgba(20, 35, 59, 0.28);
+
+    --r-card:      14px;
+    --r-btn:       10px;
   }
 
   * {
@@ -14,22 +46,71 @@
   body {
     background: white;
     color: #111827;
-    font-family: var(--font-sans, "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
+    font-family: var(--font-sans, "Hanken Grotesk", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
     -webkit-font-smoothing: antialiased;
   }
 
   .font-sans {
-    font-family: var(--font-sans, "Inter", -apple-system, sans-serif);
+    font-family: var(--font-sans, "Hanken Grotesk", -apple-system, sans-serif);
   }
 
   .font-serif {
-    font-family: var(--font-serif, "Georgia", "Cambria", "Times New Roman", serif);
+    font-family: var(--font-serif, "Newsreader", "Georgia", "Cambria", serif);
   }
 
   .font-hand {
     font-family: var(--font-hand, "Architects Daughter", cursive);
   }
 }
+
+/* ── Manuscript helper classes (opt-in by class) ─────────────────────────── */
+.serif {
+  font-family: var(--font-serif, "Newsreader", Georgia, serif);
+}
+.mono {
+  font-family: var(--font-mono, "Spline Sans Mono", ui-monospace, monospace);
+}
+.eyebrow {
+  font-family: var(--font-mono, "Spline Sans Mono", ui-monospace, monospace);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.tex-dot {
+  background-image: radial-gradient(circle, rgba(20, 35, 59, 0.05) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+.tex-rule {
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent,
+    transparent 31px,
+    rgba(20, 35, 59, 0.05) 31px,
+    rgba(20, 35, 59, 0.05) 32px
+  );
+}
+.tdx-scroll::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.tdx-scroll::-webkit-scrollbar-thumb {
+  background: rgba(20, 35, 59, 0.15);
+  border-radius: 8px;
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+@keyframes tdx-fade-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes tdx-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.anim-up { animation: tdx-fade-up 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+.anim-in { animation: tdx-fade 0.4s ease both; }
 
 /* Dot grid paper texture for backgrounds */
 .bg-dot-grid {

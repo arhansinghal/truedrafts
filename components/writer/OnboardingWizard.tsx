@@ -1,33 +1,56 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
-import { CheckCircle, ChevronRight, ChevronLeft, SkipForward } from "lucide-react";
+import { CheckCircle, ChevronRight, ChevronLeft, Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { University } from "@/lib/db/schema";
 
+interface Activity {
+  name: string;
+  description: string;
+}
 interface WizardState {
-  username: string;
+  name: string;
+  country: string;
   bio: string;
+  activities: Activity[];
   selectedUnis: { uniId: string; admittedYear: string }[];
 }
 
 const CURRENT_YEAR = new Date().getFullYear();
 const YEARS = Array.from({ length: 6 }, (_, i) => CURRENT_YEAR - i);
 
-export function OnboardingWizard({ universities }: { universities: University[] }) {
+const COUNTRIES = [
+  "United States","United Kingdom","Canada","Australia","India","China","Germany","France","Japan","South Korea",
+  "Singapore","Hong Kong","United Arab Emirates","Saudi Arabia","Brazil","Mexico","Nigeria","Ghana","Kenya","South Africa",
+  "Pakistan","Bangladesh","Sri Lanka","Nepal","Malaysia","Indonesia","Philippines","Vietnam","Thailand","Turkey",
+  "Egypt","Morocco","Italy","Spain","Netherlands","Sweden","Norway","Denmark","Finland","Switzerland","Austria",
+  "Belgium","Poland","Czech Republic","Romania","Hungary","Greece","Portugal","Ireland","New Zealand","Argentina",
+  "Chile","Colombia","Peru","Venezuela","Ecuador","Bolivia","Paraguay","Uruguay","Jamaica","Trinidad and Tobago",
+  "Barbados","Bahamas","Other",
+];
+
+export function OnboardingWizard({
+  universities,
+  initialName = "",
+}: {
+  universities: University[];
+  initialName?: string;
+}) {
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
   const [state, setState] = useState<WizardState>({
-    username: "",
+    name: initialName,
+    country: "",
     bio: "",
+    activities: [],
     selectedUnis: [],
   });
 
@@ -56,61 +79,84 @@ export function OnboardingWizard({ universities }: { universities: University[] 
     }));
   }
 
-  async function saveProfileAndUnis() {
+  function addActivity() {
+    setState((p) => (p.activities.length >= 10 ? p : { ...p, activities: [...p.activities, { name: "", description: "" }] }));
+  }
+  function removeActivity(i: number) {
+    setState((p) => ({ ...p, activities: p.activities.filter((_, idx) => idx !== i) }));
+  }
+  function updateActivity(i: number, field: keyof Activity, value: string) {
+    setState((p) => ({
+      ...p,
+      activities: p.activities.map((a, idx) => (idx === i ? { ...a, [field]: value } : a)),
+    }));
+  }
+
+  async function saveProfile(fields: Partial<{ name: string; country: string; bio: string; activities: Activity[] }>) {
+    const res = await fetch("/api/writer/onboarding/profile", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(fields),
+    });
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}));
+      throw new Error(d.error ?? "Failed to save");
+    }
+  }
+
+  async function saveUnis() {
+    if (state.selectedUnis.length > 0) {
+      await fetch("/api/writer/onboarding/universities", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ universities: state.selectedUnis }),
+      });
+    }
+  }
+
+  // Step 1 → Step 2: save name + country.
+  async function handleStep1Next() {
     setSaving(true);
     setError("");
     try {
-      // Save profile fields
-      const profileRes = await fetch("/api/writer/onboarding/profile", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: state.username, bio: state.bio }),
-      });
-      if (!profileRes.ok) {
-        const d = await profileRes.json();
-        throw new Error(d.error ?? "Failed to save profile");
-      }
-
-      // Save universities
-      if (state.selectedUnis.length > 0) {
-        await fetch("/api/writer/onboarding/universities", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ universities: state.selectedUnis }),
-        });
-      }
+      await saveProfile({ name: state.name, country: state.country });
+      setStep(2);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Save failed");
-      throw err;
     } finally {
       setSaving(false);
     }
   }
 
-  async function handleNext() {
-    if (step === 2) {
-      // Before step 3, save data
-      try {
-        await saveProfileAndUnis();
-      } catch {
-        return;
-      }
+  // Step 2 → Step 3: save universities.
+  async function handleStep2Next() {
+    setSaving(true);
+    setError("");
+    try {
+      await saveUnis();
+      setStep(3);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Save failed");
+    } finally {
+      setSaving(false);
     }
-    setStep((s) => s + 1);
   }
 
-  async function handleSkipToEssay() {
-    if (step === 2) {
-      try {
-        await saveProfileAndUnis();
-      } catch {
-        return;
-      }
+  // Step 3 "Finish": save bio + activities, then go to dashboard.
+  async function handleFinish() {
+    setSaving(true);
+    setError("");
+    try {
+      await saveProfile({ bio: state.bio, activities: state.activities });
+      router.push("/writer");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Save failed");
+      setSaving(false);
     }
-    router.push("/writer/essays/new");
   }
 
-  function handleFinish() {
+  // Step 3 "Skip, finish later": straight to the dashboard, fill in later from Profile.
+  function handleSkip() {
     router.push("/writer");
   }
 
@@ -125,46 +171,37 @@ export function OnboardingWizard({ universities }: { universities: University[] 
         <Progress value={progress} className="h-1.5" />
       </div>
 
-      {/* Step 1: Profile */}
+      {/* Step 1: Name + country */}
       {step === 1 && (
         <div className="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
-          <h2 className="text-xl font-bold text-gray-900 mb-1">Set up your profile</h2>
-          <p className="text-gray-500 text-sm mb-6">This is how students will know you</p>
+          <h2 className="text-xl font-bold text-gray-900 mb-1">Welcome — let&apos;s set up your profile</h2>
+          <p className="text-gray-500 text-sm mb-6">This is how students will know you.</p>
 
           <div className="space-y-4">
             <div>
-              <Label htmlFor="username">Username <span className="text-gray-400">(public URL)</span></Label>
-              <div className="flex items-center gap-2 mt-1">
-                <span className="text-sm text-gray-400 bg-gray-50 border border-gray-200 rounded-l-md px-3 py-2">
-                  truedrafts.com/writers/
-                </span>
-                <Input
-                  id="username"
-                  value={state.username}
-                  onChange={(e) =>
-                    setState((p) => ({
-                      ...p,
-                      username: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""),
-                    }))
-                  }
-                  placeholder="your-name"
-                  className="rounded-l-none"
-                />
-              </div>
+              <Label htmlFor="name">Full name</Label>
+              <Input
+                id="name"
+                value={state.name}
+                onChange={(e) => setState((p) => ({ ...p, name: e.target.value }))}
+                placeholder="Your full name"
+                className="mt-1"
+              />
             </div>
 
             <div>
-              <Label htmlFor="bio">Bio <span className="text-gray-400">(optional)</span></Label>
-              <textarea
-                id="bio"
-                value={state.bio}
-                onChange={(e) => setState((p) => ({ ...p, bio: e.target.value }))}
-                placeholder="Tell students a bit about yourself — where you got in, your major, your story..."
-                className="mt-1 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0851A0] resize-none"
-                rows={3}
-                maxLength={300}
-              />
-              <p className="text-xs text-gray-400 text-right">{state.bio.length}/300</p>
+              <Label htmlFor="country">Country</Label>
+              <select
+                id="country"
+                value={state.country}
+                onChange={(e) => setState((p) => ({ ...p, country: e.target.value }))}
+                className="mt-1 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0851A0]"
+              >
+                <option value="">Select country…</option>
+                {COUNTRIES.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
             </div>
           </div>
 
@@ -172,10 +209,10 @@ export function OnboardingWizard({ universities }: { universities: University[] 
 
           <Button
             className="w-full mt-6 gap-2"
-            onClick={() => setStep(2)}
-            disabled={!state.username.trim()}
+            onClick={handleStep1Next}
+            disabled={!state.name.trim() || saving}
           >
-            Continue <ChevronRight className="h-4 w-4" />
+            {saving ? "Saving..." : <>Continue <ChevronRight className="h-4 w-4" /></>}
           </Button>
         </div>
       )}
@@ -184,7 +221,7 @@ export function OnboardingWizard({ universities }: { universities: University[] 
       {step === 2 && (
         <div className="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
           <h2 className="text-xl font-bold text-gray-900 mb-1">Where did you get in?</h2>
-          <p className="text-gray-500 text-sm mb-6">Select the schools you were admitted to</p>
+          <p className="text-gray-500 text-sm mb-6">Select the schools you were admitted to and the year.</p>
 
           <div className="grid grid-cols-2 gap-2 max-h-72 overflow-y-auto pr-1">
             {universities.map((uni) => {
@@ -200,13 +237,6 @@ export function OnboardingWizard({ universities }: { universities: University[] 
                       : "border-gray-200 text-gray-700 hover:border-gray-300"
                   )}
                 >
-                  {uni.logoUrl ? (
-                    <Image src={uni.logoUrl} alt={uni.name} width={20} height={20} className="object-contain" />
-                  ) : (
-                    <div className="h-5 w-5 rounded bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-500">
-                      {uni.name[0]}
-                    </div>
-                  )}
                   <span className="truncate">{uni.name}</span>
                   {selected && <CheckCircle className="h-4 w-4 shrink-0 ml-auto" />}
                 </button>
@@ -244,35 +274,93 @@ export function OnboardingWizard({ universities }: { universities: University[] 
             <Button variant="outline" onClick={() => setStep(1)} className="gap-1">
               <ChevronLeft className="h-4 w-4" /> Back
             </Button>
-            <Button
-              className="flex-1 gap-2"
-              onClick={handleNext}
-              disabled={saving}
-            >
+            <Button className="flex-1 gap-2" onClick={handleStep2Next} disabled={saving}>
               {saving ? "Saving..." : <>Continue <ChevronRight className="h-4 w-4" /></>}
             </Button>
           </div>
         </div>
       )}
 
-      {/* Step 3: Upload first essay */}
+      {/* Step 3: Bio + activities */}
       {step === 3 && (
-        <div className="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm text-center">
-          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
-            <CheckCircle className="h-8 w-8 text-green-600" />
-          </div>
-          <h2 className="text-xl font-bold text-gray-900 mb-2">Profile saved!</h2>
-          <p className="text-gray-500 text-sm mb-8">
-            Ready to start earning? Upload your first essay now, or explore your dashboard first.
-          </p>
+        <div className="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
+          <h2 className="text-xl font-bold text-gray-900 mb-1">Tell students about yourself</h2>
+          <p className="text-gray-500 text-sm mb-6">Optional — you can always finish this later from your profile.</p>
 
-          <div className="space-y-3">
-            <Button className="w-full gap-2" onClick={handleSkipToEssay} disabled={saving}>
-              Upload My First Essay
+          <div className="space-y-5">
+            <div>
+              <Label htmlFor="bio">Bio <span className="text-gray-400">(optional)</span></Label>
+              <textarea
+                id="bio"
+                value={state.bio}
+                onChange={(e) => setState((p) => ({ ...p, bio: e.target.value }))}
+                placeholder="Where you got in, your major, your story…"
+                className="mt-1 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0851A0] resize-none"
+                rows={3}
+                maxLength={300}
+              />
+              <p className="text-xs text-gray-400 text-right">{state.bio.length}/300</p>
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between">
+                <Label>Activities <span className="text-gray-400">(optional)</span></Label>
+                <button
+                  type="button"
+                  onClick={addActivity}
+                  disabled={state.activities.length >= 10}
+                  className="inline-flex items-center gap-1 text-xs font-medium text-[#0851A0] hover:underline disabled:opacity-40 disabled:no-underline"
+                >
+                  <Plus className="h-3.5 w-3.5" /> Add activity
+                </button>
+              </div>
+
+              {state.activities.length === 0 ? (
+                <p className="mt-2 text-xs text-gray-400">
+                  Add extracurriculars to show on your profile (up to 10).
+                </p>
+              ) : (
+                <div className="mt-2 space-y-2">
+                  {state.activities.map((a, i) => (
+                    <div key={i} className="rounded-lg border border-gray-200 p-3">
+                      <div className="flex items-center gap-2">
+                        <Input
+                          value={a.name}
+                          placeholder="Activity name"
+                          onChange={(e) => updateActivity(i, "name", e.target.value)}
+                          className="h-8 text-sm"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeActivity(i)}
+                          className="text-gray-400 hover:text-red-500 shrink-0"
+                          aria-label="Remove activity"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                      <textarea
+                        value={a.description}
+                        placeholder="Brief description (optional)…"
+                        onChange={(e) => updateActivity(i, "description", e.target.value)}
+                        className="mt-2 w-full rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0851A0] resize-none"
+                        rows={2}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {error && <p className="text-sm text-red-600 mt-3">{error}</p>}
+
+          <div className="flex gap-3 mt-6">
+            <Button variant="outline" onClick={handleSkip} disabled={saving} className="gap-1">
+              Skip, finish later
             </Button>
-            <Button variant="outline" className="w-full gap-2" onClick={handleFinish}>
-              <SkipForward className="h-4 w-4" />
-              Go to Dashboard
+            <Button className="flex-1 gap-2" onClick={handleFinish} disabled={saving}>
+              {saving ? "Saving..." : <>Finish <ChevronRight className="h-4 w-4" /></>}
             </Button>
           </div>
         </div>

@@ -1,10 +1,11 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Lock } from "lucide-react";
-import Link from "next/link";
 import Image from "next/image";
 import { formatCents } from "@/lib/utils";
+import { openRazorpayCheckout } from "@/lib/razorpay-client";
 
 interface PaywallOverlayProps {
   essayId: string;
@@ -25,12 +26,13 @@ export function PaywallOverlay({
   isLoggedIn,
   isPurchased,
 }: PaywallOverlayProps) {
+  const router = useRouter();
   const blurRef = useRef<HTMLDivElement>(null);
   const previewFired = useRef(false);
   const [showSticky, setShowSticky] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Fire preview-open analytics when blur zone enters viewport
   useEffect(() => {
     if (isPurchased) return;
     const observer = new IntersectionObserver(
@@ -41,7 +43,7 @@ export function PaywallOverlay({
         }
         setShowSticky(entry.isIntersecting || entry.boundingClientRect.top < 0);
       },
-      { threshold: 0.1 }
+      { threshold: 0.1 },
     );
     if (blurRef.current) observer.observe(blurRef.current);
     return () => observer.disconnect();
@@ -53,10 +55,15 @@ export function PaywallOverlay({
       return;
     }
     setLoading(true);
+    setError(null);
     try {
-      const res = await fetch(`/api/essays/${essayId}/checkout`, { method: "POST" });
-      const data = await res.json();
-      if (data.url) window.location.href = data.url;
+      await openRazorpayCheckout({
+        createOrderUrl: `/api/essays/${essayId}/checkout`,
+        onSuccess: () => router.refresh(),
+        onFailure: (msg) => setError(msg),
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
     } finally {
       setLoading(false);
     }
@@ -66,7 +73,6 @@ export function PaywallOverlay({
 
   return (
     <>
-      {/* Blur zone */}
       <div ref={blurRef} className="relative mt-6 overflow-hidden rounded-lg">
         <div className="select-none blur-sm pointer-events-none text-gray-500 font-serif leading-relaxed text-base px-1">
           <p>
@@ -79,10 +85,8 @@ export function PaywallOverlay({
             the admissions committee — all available to you after unlocking.
           </p>
         </div>
-        {/* Gradient overlay */}
         <div className="absolute inset-0 bg-gradient-to-b from-white/20 via-white/60 to-white pointer-events-none" />
 
-        {/* CTA inside blur zone */}
         <div className="absolute bottom-0 inset-x-0 flex flex-col items-center pb-4 px-4">
           <div className="flex items-center gap-2 mb-3 text-sm text-gray-500">
             <Lock className="h-4 w-4" />
@@ -90,15 +94,17 @@ export function PaywallOverlay({
           </div>
           <Button onClick={handleUnlock} disabled={loading} size="lg" className="w-full max-w-xs gap-2">
             <Lock className="h-4 w-4" />
-            {loading ? "Redirecting..." : `Unlock Full Essay — ${formatCents(priceCents)}`}
+            {loading ? "Opening payment…" : `Unlock Full Essay — ${formatCents(priceCents)}`}
           </Button>
+          {error && (
+            <p className="mt-2 text-xs text-red-500 text-center max-w-xs">{error}</p>
+          )}
           {!isLoggedIn && (
             <p className="mt-2 text-xs text-gray-400">Sign in required to purchase</p>
           )}
         </div>
       </div>
 
-      {/* Sticky bottom bar */}
       {showSticky && (
         <div className="fixed bottom-0 inset-x-0 z-50 border-t border-gray-200 bg-white/95 backdrop-blur px-4 py-3 shadow-lg">
           <div className="container mx-auto max-w-3xl flex items-center justify-between gap-4">

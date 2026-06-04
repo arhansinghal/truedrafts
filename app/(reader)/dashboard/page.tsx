@@ -23,7 +23,7 @@ export default async function DashboardPage() {
       application: {
         with: {
           university: true,
-          writer: { columns: { id: true, name: true, email: true, verifiedAdmit: true } },
+          writer: { columns: { id: true, name: true, email: true, verifiedAdmit: true, deletedAt: true } },
         },
       },
     },
@@ -82,8 +82,10 @@ export default async function DashboardPage() {
                   </p>
                   {/* Writer revealed after purchase */}
                   <p className="text-xs text-gray-700 mt-0.5">
-                    Writer: <span className="font-medium">{app.writer.name}</span>
-                    {" · "}<a href={`mailto:${app.writer.email}`} className="text-[#0851A0] hover:underline">{app.writer.email}</a>
+                    Writer: <span className="font-medium">{app.writer.deletedAt ? "Deleted user" : app.writer.name}</span>
+                    {!app.writer.deletedAt && (
+                      <>{" · "}<a href={`mailto:${app.writer.email}`} className="text-[#0851A0] hover:underline">{app.writer.email}</a></>
+                    )}
                   </p>
                 </div>
 

@@ -1,9 +1,10 @@
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { collegeApplications, universities } from "@/lib/db/schema";
+import { collegeApplications, universities, users } from "@/lib/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { generateSlug } from "@/lib/utils";
 import { generateEssayTags } from "@/lib/ai";
+import { sendApplicationSubmittedEmail } from "@/lib/email";
 
 export async function GET(req: Request) {
   const session = await auth.api.getSession({ headers: req.headers });
@@ -42,6 +43,15 @@ export async function POST(req: Request) {
 
   if (!universityId || !admissionProofUrl) {
     return Response.json({ error: "Missing required fields" }, { status: 400 });
+  }
+
+  // Every supplemental essay must have both a prompt and content.
+  const supplementalsList = (supplementals ?? []) as { prompt?: string; content?: string }[];
+  if (supplementalsList.some((s) => !s.prompt?.trim() || !s.content?.trim())) {
+    return Response.json(
+      { error: "Each supplemental essay needs both a prompt and the essay text." },
+      { status: 400 },
+    );
   }
 
   const university = await db.query.universities.findFirst({
@@ -83,6 +93,18 @@ export async function POST(req: Request) {
       status: "pending",
     })
     .returning();
+
+  // Stamp the bundle-inclusion consent timestamp on the writer's user row.
+  // This is the durable "yes I agreed" record — the wizard checkbox is a
+  // gating UX, this row is the evidence. Idempotent on subsequent submits
+  // (writer re-submitting another app just refreshes the timestamp).
+  await db
+    .update(users)
+    .set({ writersAgreedBundlesAt: new Date() })
+    .where(eq(users.id, session.user.id));
+
+  // Confirmation that we received the submission (fire-and-forget).
+  sendApplicationSubmittedEmail(session.user.id, application.id).catch(console.error);
 
   return Response.json(application, { status: 201 });
 }

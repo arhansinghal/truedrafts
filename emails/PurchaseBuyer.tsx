@@ -5,7 +5,7 @@ interface Props {
   buyerName: string;
   appTitle: string;
   university: string;
-  priceDollars: string;
+  priceLabel: string;
   viewUrl: string;
   writerEmail?: string;
 }
@@ -14,7 +14,7 @@ export default function PurchaseBuyerEmail({
   buyerName,
   appTitle,
   university,
-  priceDollars,
+  priceLabel,
   viewUrl,
   writerEmail,
 }: Props) {
@@ -38,7 +38,7 @@ export default function PurchaseBuyerEmail({
         </Section>
         <Hr style={{ borderColor: "#e5e7eb", margin: "12px 0" }} />
         <Text style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "#111827" }}>
-          Total paid: ${priceDollars}
+          Total paid: {priceLabel}
         </Text>
       </Section>
 

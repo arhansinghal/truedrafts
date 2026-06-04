@@ -1,32 +1,13 @@
-export const dynamic = "force-dynamic";
-
 import Link from "next/link";
-import { db } from "@/lib/db";
-import { essays } from "@/lib/db/schema";
-import { eq, desc } from "drizzle-orm";
 import { Button } from "@/components/ui/button";
-import { EssayCard } from "@/components/essays/EssayCard";
 import { HeroTypewriter } from "@/components/home/HeroTypewriter";
 import { BackgroundDoodles } from "@/components/home/BackgroundDoodles";
 import { UniLogoGallery } from "@/components/home/UniLogoGallery";
 import { BentoHowItWorks } from "@/components/home/BentoHowItWorks";
 import { EssayTeaserSection } from "@/components/home/EssayTeaserSection";
 import { SocialProofToast } from "@/components/home/SocialProofToast";
-import { ArrowRight } from "lucide-react";
 
-export default async function HomePage() {
-  const topEssays = await db.query.essays.findMany({
-    where: eq(essays.status, "approved"),
-    with: {
-      university: true,
-      writer: {
-        columns: { id: true, name: true, username: true, verifiedAdmit: true },
-      },
-    },
-    orderBy: [desc(essays.purchases)],
-    limit: 6,
-  });
-
+export default function HomePage() {
   return (
     <>
       {/* ── Hero ─────────────────────────────────────────────────────────────── */}
@@ -112,7 +93,7 @@ export default async function HomePage() {
                 {" · "}
                 <span className="font-semibold text-gray-700">30+ Universities</span>
                 {" · "}
-                <span className="font-semibold text-gray-700">50% Writers Keep</span>
+                <span className="font-semibold text-gray-700">Writers Get Paid</span>
               </p>
             </div>
 
@@ -137,43 +118,6 @@ export default async function HomePage() {
       {/* ── Essay Teaser ─────────────────────────────────────────────────────── */}
       <EssayTeaserSection />
 
-      {/* ── Trending Essays ───────────────────────────────────────────────────── */}
-      <section className="px-4 py-16" style={{ background: "#f0f5ff" }}>
-        <div className="mx-auto max-w-7xl">
-          <div className="mb-10 text-center">
-            <h2 className="font-serif text-3xl font-bold text-gray-900">
-              Essays students love
-            </h2>
-            <p className="mt-2 text-sm text-gray-400">
-              Most purchased from our verified admit writers
-            </p>
-          </div>
-
-          {topEssays.length > 0 ? (
-            <>
-              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                {topEssays.map((essay) => (
-                  <EssayCard key={essay.id} essay={essay} />
-                ))}
-              </div>
-              <div className="mt-10 flex justify-center">
-                <Link href="/essays?sort=trending">
-                  <Button variant="ghost" size="sm" className="gap-1.5 text-gray-500 hover:text-gray-700">
-                    View all essays <ArrowRight className="h-4 w-4" />
-                  </Button>
-                </Link>
-              </div>
-            </>
-          ) : (
-            <div className="flex flex-col items-center justify-center py-20 text-gray-400">
-              <span className="text-5xl mb-4">📝</span>
-              <p className="font-serif text-lg text-gray-500">Essays are on their way.</p>
-              <p className="mt-1 text-sm">Check back soon — admits are uploading their stories.</p>
-            </div>
-          )}
-        </div>
-      </section>
-
       {/* ── Writer CTA ───────────────────────────────────────────────────────── */}
       <section className="px-4 py-20" style={{ background: "#0851A0" }}>
         <div className="mx-auto max-w-3xl text-center">
@@ -181,7 +125,7 @@ export default async function HomePage() {
             Got into your dream school? Earn from it.
           </h2>
           <p className="mb-8 text-base text-blue-200">
-            Upload your essays, set your price, keep 50% of every sale.
+            Upload your essays, set your price, and earn every time a student unlocks them.
           </p>
           <Link href="/signup/writer">
             <Button

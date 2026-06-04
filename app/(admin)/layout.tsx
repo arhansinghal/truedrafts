@@ -3,11 +3,12 @@ import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import Link from "next/link";
 import { Navbar } from "@/components/layout/navbar";
-import { LayoutDashboard, FileText, Users, DollarSign, AlertTriangle, Banknote } from "lucide-react";
+import { LayoutDashboard, FileText, Users, DollarSign, AlertTriangle, Banknote, Package } from "lucide-react";
 
 const NAV = [
   { href: "/admin", label: "Overview", icon: LayoutDashboard },
   { href: "/admin/applications", label: "Applications", icon: FileText },
+  { href: "/admin/bundles", label: "Bundles", icon: Package },
   { href: "/admin/essays", label: "Old Essays", icon: FileText },
   { href: "/admin/users", label: "Users", icon: Users },
   { href: "/admin/revenue", label: "Revenue", icon: DollarSign },

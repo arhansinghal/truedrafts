@@ -1,12 +1,17 @@
 import { auth } from "@/lib/auth";
 import { db, essays, purchases } from "@/lib/db";
-import { stripe } from "@/lib/stripe";
+import { createOrder } from "@/lib/razorpay";
+import { isTrustedOrigin } from "@/lib/csrf";
 import { eq, and } from "drizzle-orm";
+import { randomUUID } from "node:crypto";
 
 export async function POST(
   req: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
+  if (!isTrustedOrigin(req)) {
+    return Response.json({ error: "Forbidden" }, { status: 403 });
+  }
   const { id } = await params;
 
   const session = await auth.api.getSession({ headers: req.headers });
@@ -18,7 +23,7 @@ export async function POST(
     where: and(
       eq(purchases.buyerId, session.user.id),
       eq(purchases.essayId, id),
-      eq(purchases.status, "completed")
+      eq(purchases.status, "completed"),
     ),
   });
   if (existing) {
@@ -27,44 +32,54 @@ export async function POST(
 
   const essay = await db.query.essays.findFirst({
     where: eq(essays.id, id),
-    with: { university: true },
   });
 
   if (!essay || essay.status !== "approved") {
     return Response.json({ error: "Essay not found" }, { status: 404 });
   }
 
-  try {
-    const appUrl = process.env.NEXT_PUBLIC_URL ?? "http://localhost:3000";
+  if (essay.writerId === session.user.id) {
+    return Response.json(
+      { error: "You cannot purchase your own essay" },
+      { status: 400 },
+    );
+  }
 
-    const checkoutSession = await stripe.checkout.sessions.create({
-      mode: "payment",
-      customer_email: session.user.email,
-      line_items: [
-        {
-          quantity: 1,
-          price_data: {
-            currency: "usd",
-            unit_amount: essay.priceCents,
-            product_data: {
-              name: essay.title.length > 250 ? essay.title.slice(0, 247) + "..." : essay.title,
-              description: `Full essay access. Admitted ${essay.admittedYear ?? "recently"}.`,
-            },
-          },
-        },
-      ],
-      metadata: {
-        essay_id: essay.id,
+  if (essay.priceCents < 100) {
+    return Response.json(
+      { error: "Essay price below Razorpay minimum (₹1)" },
+      { status: 400 },
+    );
+  }
+
+  try {
+    const order = await createOrder({
+      amount: essay.priceCents,
+      currency: "INR",
+      receipt: `essay_${randomUUID().slice(0, 16)}`,
+      notes: {
+        kind: "essay",
+        ref_id: essay.id,
         buyer_id: session.user.id,
       },
-      success_url: `${appUrl}/essays/${essay.slug}?purchased=true&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${appUrl}/essays/${essay.slug}`,
     });
 
-    return Response.json({ url: checkoutSession.url });
-  } catch (err: unknown) {
+    return Response.json({
+      order_id: order.id,
+      amount: order.amount,
+      currency: order.currency,
+      key_id: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+      name: "TrueDrafts",
+      description: `Unlock: ${essay.title}`.slice(0, 250),
+      prefill: { email: session.user.email, name: session.user.name },
+    });
+  } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    console.error("Stripe checkout error:", message);
-    return Response.json({ error: "Checkout failed", detail: message }, { status: 500 });
+    console.error("Razorpay essay checkout error:", message);
+    const status = (err as Error & { status?: number }).status === 401 ? 401 : 500;
+    return Response.json(
+      { error: status === 401 ? "Payment auth failed" : "Checkout failed" },
+      { status },
+    );
   }
 }

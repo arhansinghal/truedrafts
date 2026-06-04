@@ -5,7 +5,7 @@ interface Props {
   writerName: string;
   appTitle: string;
   university: string;
-  priceDollars: string;
+  priceLabel: string;
   viewUrl: string;
   highlight?: string | null; // Gemma-extracted compelling sentence
 }
@@ -14,7 +14,7 @@ export default function ApplicationApprovedEmail({
   writerName,
   appTitle,
   university,
-  priceDollars,
+  priceLabel,
   viewUrl,
   highlight,
 }: Props) {
@@ -23,7 +23,7 @@ export default function ApplicationApprovedEmail({
       <Text style={STYLES.h1}>Your application is live ✅</Text>
       <Text style={STYLES.body}>Hi {writerName},</Text>
       <Text style={STYLES.body}>
-        <strong>{appTitle}</strong> has been approved and is now live on TrueDrafts. Students browsing {university} can find and purchase your full application for <strong>${priceDollars}</strong>.
+        <strong>{appTitle}</strong> has been approved and is now live on TrueDrafts. Students browsing {university} can find and purchase your full application for <strong>{priceLabel}</strong>.
       </Text>
 
       {highlight && (

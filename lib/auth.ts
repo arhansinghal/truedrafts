@@ -2,7 +2,7 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from "./db";
 import * as schema from "./db/schema";
-import { sendForgotPasswordEmail, sendVerifyEmail } from "./email";
+import { sendForgotPasswordEmail, sendVerifyEmail, sendWelcomeEmail } from "./email";
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -33,6 +33,24 @@ export const auth = betterAuth({
     },
   },
 
+  // Send a welcome email once, right after any account is created (email or
+  // OAuth). sendWelcomeEmail is role-aware and idempotent per address, so a
+  // provider retry won't double-send. Wrapped so an email failure never blocks
+  // account creation.
+  databaseHooks: {
+    user: {
+      create: {
+        after: async (user: { email: string; name: string; role?: string | null }) => {
+          try {
+            await sendWelcomeEmail(user.email, user.name, user.role);
+          } catch (e) {
+            console.error("[welcome email]", e);
+          }
+        },
+      },
+    },
+  },
+
   user: {
     additionalFields: {
       role: {
@@ -51,10 +69,6 @@ export const auth = betterAuth({
       profilePhoto: {
         type: "string",
         input: true,
-      },
-      polarCustomerId: {
-        type: "string",
-        input: false,
       },
       verifiedAdmit: {
         type: "boolean",

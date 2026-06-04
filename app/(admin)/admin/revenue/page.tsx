@@ -67,7 +67,7 @@ export default async function AdminRevenuePage() {
         <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
           <TrendingUp className="h-5 w-5 text-[#0851A0] mb-2" />
           <p className="text-2xl font-bold text-gray-900">{formatCents(Number(rev?.platformCents ?? 0))}</p>
-          <p className="text-xs text-gray-500 mt-0.5">Platform Revenue (50%)</p>
+          <p className="text-xs text-gray-500 mt-0.5">Platform Revenue</p>
         </div>
         <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
           <Users className="h-5 w-5 text-purple-600 mb-2" />

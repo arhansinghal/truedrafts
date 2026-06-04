@@ -37,7 +37,7 @@ export function Navbar() {
   }, []);
 
   const settingsHref =
-    user?.role === "writer" ? "/writer/settings" :
+    user?.role === "writer" ? "/writer/profile" :
     user?.role === "admin" ? "/admin" :
     "/dashboard/settings";
 
@@ -67,6 +67,7 @@ export function Navbar() {
             <Link href="/applications" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">
               Browse Applications
             </Link>
+            {/* Writing Studio temporarily disabled — see app/(studio)/layout.tsx feature gate. */}
             <Link href="/#how-it-works" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">
               How It Works
             </Link>

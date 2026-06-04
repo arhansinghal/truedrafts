@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { users, purchases, essays } from "@/lib/db/schema";
-import { eq, sql, desc } from "drizzle-orm";
+import { isNull, desc } from "drizzle-orm";
 import { AdminUserRow } from "@/components/admin/UserRow";
 import type { Metadata } from "next";
 
@@ -21,6 +21,7 @@ export default async function AdminUsersPage({
   const roleFilter = sp.role;
 
   const allUsers = await db.query.users.findMany({
+    where: isNull(users.deletedAt),
     orderBy: [desc(users.createdAt)],
     limit: 100,
   });

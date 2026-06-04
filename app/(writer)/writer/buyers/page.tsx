@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { purchases, collegeApplications, users, universities } from "@/lib/db/schema";
 import { eq, and, desc } from "drizzle-orm";
 import { BuyersList } from "@/components/writer/BuyersList";
+import { PageHead } from "@/components/writer/Manuscript";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = { title: "Buyers" };
@@ -65,11 +66,12 @@ export default async function BuyersPage() {
   }));
 
   return (
-    <div className="max-w-3xl">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Buyers</h1>
-        <p className="text-gray-500 text-sm mt-1">{buyers.length} total purchase{buyers.length !== 1 ? "s" : ""}</p>
-      </div>
+    <div className="anim-in mx-auto max-w-[760px] px-11 pb-[70px] pt-10">
+      <PageHead
+        eyebrow="Who bought your work"
+        title="Buyers"
+        sub={`${buyers.length} reader${buyers.length !== 1 ? "s have" : " has"} unlocked your applications`}
+      />
       <BuyersList buyers={buyers} />
     </div>
   );

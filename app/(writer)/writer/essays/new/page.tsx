@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { universities, applicationDrafts } from "@/lib/db/schema";
 import { asc, eq, and } from "drizzle-orm";
 import { ApplicationUploadWizard } from "@/components/writer/ApplicationUploadWizard";
+import { PageHead } from "@/components/writer/Manuscript";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = { title: "Upload Application" };
@@ -35,17 +36,16 @@ export default async function NewEssayPage({
   const initialStep = draft?.currentStep ?? 1;
 
   return (
-    <div className="max-w-3xl">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">
-          {draft ? "Continue Application" : "Upload Application"}
-        </h1>
-        <p className="text-gray-500 text-sm mt-1">
-          {draft
+    <div className="anim-in mx-auto max-w-3xl px-11 pb-[70px] pt-10">
+      <PageHead
+        eyebrow="Publish"
+        title={draft ? "Continue Application" : "Upload Application"}
+        sub={
+          draft
             ? `Continuing from where you left off · last saved ${new Date(draft.updatedAt!).toLocaleDateString()}`
-            : "Share your essays from the application that got you in."}
-        </p>
-      </div>
+            : "Share your essays from the application that got you in."
+        }
+      />
       <ApplicationUploadWizard
         universities={allUniversities}
         draftId={draft?.id}

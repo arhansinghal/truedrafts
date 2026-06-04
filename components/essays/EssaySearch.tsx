@@ -17,40 +17,118 @@ export function EssaySearch({ currentSearch }: { currentSearch?: string }) {
 
     if (!raw.trim()) {
       params.delete("q");
+      params.delete("vibe_q");
       params.delete("vibe_tone");
+      params.delete("vibe_themes");
+      params.delete("detected_uni");
+      params.delete("detected_uni_slug");
+      params.delete("detected_major");
+      params.delete("detected_years");
+      params.delete("detected_state");
+      params.delete("detected_region");
+      params.delete("detected_type");
+      params.delete("ivy");
+      params.delete("sort");
       router.push(`${pathname}?${params.toString()}`);
       return;
     }
 
-    params.set("q", raw.trim());
+    const trimmed = raw.trim();
+    params.set("vibe_q", trimmed);
 
-    // Try vibe parsing; fall back gracefully if it fails or key isn't set
     try {
       setParsing(true);
-      const res = await fetch(`/api/vibe-search?q=${encodeURIComponent(raw.trim())}`);
+      const res = await fetch(`/api/vibe-search?q=${encodeURIComponent(trimmed)}`);
       if (res.ok) {
         const intent = await res.json();
+        const themes = [
+          ...(Array.isArray(intent.themes) ? intent.themes : []),
+          ...(Array.isArray(intent.activities) ? intent.activities : []),
+        ];
+        const years = Array.isArray(intent.target_years) ? intent.target_years : [];
+
+        // Tone
         if (intent.tones?.length > 0) {
           params.set("vibe_tone", intent.tones[0]);
         } else {
           params.delete("vibe_tone");
         }
-        if (intent.themes?.length > 0) {
-          params.set("vibe_themes", intent.themes.join(","));
+
+        // Themes + activities
+        if (themes.length > 0) {
+          params.set("vibe_themes", themes.join(","));
         } else {
           params.delete("vibe_themes");
         }
-        if (intent.target_uni && !searchParams.get("university")) {
-          params.set("detected_uni", intent.target_uni);
+
+        // University — prefer resolved slug
+        if (!searchParams.get("university")) {
+          if (intent.target_uni_slug) {
+            params.set("detected_uni_slug", intent.target_uni_slug);
+            params.delete("detected_uni");
+          } else if (intent.target_uni) {
+            params.set("detected_uni", intent.target_uni);
+            params.delete("detected_uni_slug");
+          } else {
+            params.delete("detected_uni");
+            params.delete("detected_uni_slug");
+          }
+        }
+
+        // Major
+        if (intent.major && String(intent.major).trim()) {
+          params.set("detected_major", String(intent.major).trim());
         } else {
-          params.delete("detected_uni");
+          params.delete("detected_major");
         }
-        if (intent.semantic_keywords) {
-          params.set("q", intent.semantic_keywords);
+
+        // Years
+        if (years.length > 0) {
+          params.set("detected_years", years.join(","));
+        } else {
+          params.delete("detected_years");
         }
+
+        // Ivy League
+        if (intent.ivy_league) {
+          params.set("ivy", "1");
+        } else {
+          params.delete("ivy");
+        }
+
+        // State
+        if (intent.state) {
+          params.set("detected_state", intent.state);
+        } else {
+          params.delete("detected_state");
+        }
+
+        // Region
+        if (intent.region) {
+          params.set("detected_region", intent.region);
+        } else {
+          params.delete("detected_region");
+        }
+
+        // School type
+        if (intent.university_type) {
+          params.set("detected_type", intent.university_type);
+        } else {
+          params.delete("detected_type");
+        }
+
+        // Always use the raw user query as q. AI's "semantic_keywords" is a
+        // paraphrase — useful for ranking, not for substring matching. Let
+        // the page's tokenizer handle synonyms + stopwords.
+        params.set("q", trimmed);
+        params.set("sort", "relevance");
+      } else {
+        params.set("q", trimmed);
+        params.delete("sort");
       }
     } catch {
-      // Gemini unavailable — plain text search still works
+      params.set("q", trimmed);
+      params.delete("sort");
     } finally {
       setParsing(false);
     }
@@ -70,10 +148,19 @@ export function EssaySearch({ currentSearch }: { currentSearch?: string }) {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     const params = new URLSearchParams(searchParams.toString());
     params.delete("q");
+    params.delete("vibe_q");
     params.delete("vibe_tone");
     params.delete("vibe_themes");
     params.delete("detected_uni");
+    params.delete("detected_uni_slug");
+    params.delete("detected_major");
+    params.delete("detected_years");
+    params.delete("detected_state");
+    params.delete("detected_region");
+    params.delete("detected_type");
+    params.delete("ivy");
     params.delete("page");
+    params.delete("sort");
     router.push(`${pathname}?${params.toString()}`);
   }
 
@@ -103,7 +190,7 @@ export function EssaySearch({ currentSearch }: { currentSearch?: string }) {
         type="text"
         value={value}
         onChange={handleChange}
-        placeholder="Describe your vibe — e.g. humble Harvard essay about coding…"
+        placeholder="Search by school, activity, major, or vibe — e.g. Penn debate essay…"
         className="w-full bg-transparent text-sm text-gray-700 placeholder-gray-400 py-2.5 pl-10 pr-10 focus:outline-none rounded-full"
       />
       {active && (

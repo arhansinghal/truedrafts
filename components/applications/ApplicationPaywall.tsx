@@ -1,8 +1,10 @@
 "use client";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Lock } from "lucide-react";
 import { formatCents } from "@/lib/utils";
+import { openRazorpayCheckout } from "@/lib/razorpay-client";
 
 interface Props {
   applicationId: string;
@@ -11,7 +13,13 @@ interface Props {
   isLoggedIn: boolean;
 }
 
-export function ApplicationPaywall({ applicationId, applicationSlug, priceCents, isLoggedIn }: Props) {
+export function ApplicationPaywall({
+  applicationId,
+  applicationSlug,
+  priceCents,
+  isLoggedIn,
+}: Props) {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -23,16 +31,14 @@ export function ApplicationPaywall({ applicationId, applicationSlug, priceCents,
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/applications/${applicationId}/checkout`, { method: "POST" });
-      const data = await res.json();
-      if (data.url) {
-        window.location.href = data.url;
-      } else {
-        setError(data.detail ?? data.error ?? "Something went wrong. Please try again.");
-        setLoading(false);
-      }
-    } catch {
-      setError("Network error. Please try again.");
+      await openRazorpayCheckout({
+        createOrderUrl: `/api/applications/${applicationId}/checkout`,
+        onSuccess: () => router.refresh(),
+        onFailure: (msg) => setError(msg),
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
       setLoading(false);
     }
   }
@@ -47,7 +53,9 @@ export function ApplicationPaywall({ applicationId, applicationSlug, priceCents,
         style={{ background: "#0851A0" }}
       >
         <Lock className="h-4 w-4" />
-        {loading ? "Redirecting..." : `Unlock Full Application — ${formatCents(priceCents)}`}
+        {loading
+          ? "Opening payment…"
+          : `Unlock Full Application — ${formatCents(priceCents)}`}
       </Button>
       {error && (
         <p className="text-xs text-red-500 text-center max-w-xs">{error}</p>

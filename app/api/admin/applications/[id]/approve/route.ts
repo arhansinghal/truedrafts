@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { collegeApplications } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { tagEssay, buildVibeSearchText, getEssayHighlight } from "@/lib/gemma";
+import { generateInsightBrief } from "@/lib/vibe-anthropic";
 import { sendApplicationApprovedEmail } from "@/lib/email";
 
 export async function POST(
@@ -45,29 +46,30 @@ export async function POST(
   ].filter(Boolean).join("\n\n");
 
   if (essayText) {
+    const supplementalsParsed: Array<{ prompt?: string; content?: string }> = (() => {
+      try { return JSON.parse(app.supplementals ?? "[]"); } catch { return []; }
+    })();
+
     Promise.all([
       tagEssay(essayText),
       getEssayHighlight(essayText),
-      // Generate AI Insight Brief via Python service (if configured)
-      process.env.AI_SERVICE_URL
-        ? fetch(`${process.env.AI_SERVICE_URL}/brief`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ application_id: id, essay_text: essayText }),
-            signal: AbortSignal.timeout(10000),
-          }).then(r => r.ok ? r.json() : null).catch(() => null)
-        : Promise.resolve(null),
-    ]).then(async ([meta, highlight, briefResult]) => {
+      generateInsightBrief({
+        commonAppContent: app.commonAppContent,
+        commonAppPrompt: app.commonAppPrompt,
+        submittedCommonApp: !!app.submittedCommonApp,
+        supplementals: supplementalsParsed,
+        major: app.major,
+      }),
+    ]).then(async ([meta, highlight, brief]) => {
       const updates: Record<string, unknown> = {};
       if (meta) {
         updates.vibeMetadata   = JSON.stringify(meta);
         updates.vibeTone       = meta.tone;
         updates.vibeSearchText = buildVibeSearchText(meta);
+        if (meta.major) updates.major = meta.major;
       }
-      // briefResult.brief is already saved to DB by the Python service,
-      // but we store it here too for resilience
-      if (briefResult?.brief && !briefResult?.cached) {
-        updates.insightBrief = JSON.stringify(briefResult.brief);
+      if (brief) {
+        updates.insightBrief = JSON.stringify(brief);
       }
       if (Object.keys(updates).length > 0) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any

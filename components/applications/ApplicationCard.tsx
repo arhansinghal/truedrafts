@@ -1,29 +1,47 @@
 import Link from "next/link";
 import Image from "next/image";
-import { ShoppingBag, Eye, FileText, User as UserIcon, Sparkles } from "lucide-react";
+import { ShoppingBag, Eye, FileText, User as UserIcon, Sparkles, Package } from "lucide-react";
 import { formatCents } from "@/lib/utils";
-import type { CollegeApplication, University, User } from "@/lib/db/schema";
+import type { Bundle, CollegeApplication, University, User } from "@/lib/db/schema";
+import { parseInsightBrief } from "./InsightPreview";
 
-interface InsightBrief {
-  essay_focus:       string;
-  applicant_profile: string;
-  why_it_worked:     string;
-  tone_signature:    string;
-  standout_quote:    string;
-}
-
-type AppWithRelations = CollegeApplication & {
+// Only the columns the card actually renders. Deliberately narrow: list queries
+// must NOT pull heavyweight per-row columns (the 1024-dim insightBriefEmbedding
+// vector, full essay text, supplementals JSON) — doing so made Browse take ~8s.
+// See lib/db column-selection notes.
+export type AppWithRelations = Pick<
+  CollegeApplication,
+  | "id"
+  | "slug"
+  | "title"
+  | "major"
+  | "tags"
+  | "admittedYear"
+  | "priceCents"
+  | "views"
+  | "purchases"
+  | "submittedCommonApp"
+  | "numSupplementals"
+  | "insightBrief"
+> & {
   university: University;
   writer: Pick<User, "id" | "name" | "username" | "verifiedAdmit">;
 };
 
-export function ApplicationCard({ application: app }: { application: AppWithRelations }) {
-  let supplementalCount = 0;
-  try { supplementalCount = JSON.parse(app.supplementals ?? "[]").length; } catch { supplementalCount = 0; }
+export function ApplicationCard({
+  application: app,
+  bundles,
+}: {
+  application: AppWithRelations;
+  bundles?: Bundle[];
+}) {
+  const supplementalCount = app.numSupplementals ?? 0;
   const essayCount = (app.submittedCommonApp ? 1 : 0) + supplementalCount;
 
-  let brief: InsightBrief | null = null;
-  try { brief = app.insightBrief ? JSON.parse(app.insightBrief) : null; } catch { brief = null; }
+  const brief = parseInsightBrief(app.insightBrief);
+  const briefSummary = brief?.common_app?.summary?.trim();
+  const briefTopics = (brief?.common_app?.topics ?? []).slice(0, 3);
+  const briefSuppCount = brief?.num_supplementals ?? supplementalCount;
 
   return (
     <Link href={`/applications/${app.slug}`}>
@@ -53,23 +71,46 @@ export function ApplicationCard({ application: app }: { application: AppWithRela
         <h3 className="font-semibold text-base text-gray-900 line-clamp-2 mb-2 leading-snug group-hover:text-[#0851A0] transition-colors">
           {app.title}
         </h3>
+        {app.major && (
+          <p className="text-[11px] text-gray-500 mb-2 line-clamp-1">{app.major}</p>
+        )}
+
+        {/* Bundle membership pill — first matching bundle wins */}
+        {bundles && bundles.length > 0 && (
+          <div className="mb-2">
+            <span
+              className="inline-flex items-center gap-1 rounded-full bg-blue-50 text-[#0851A0] text-[10px] font-semibold px-2 py-0.5 border border-blue-100"
+              onClickCapture={(e) => e.preventDefault()}
+            >
+              <Package className="h-2.5 w-2.5" />
+              Part of: {bundles[0].title}
+              {bundles.length > 1 && ` +${bundles.length - 1}`}
+            </span>
+          </div>
+        )}
 
         {/* Insight Brief — AI-generated, shown when available */}
-        {brief ? (
-          <div className="mb-3 rounded-xl bg-blue-50/60 border border-blue-100 px-3 py-2.5 space-y-1.5">
-            <div className="flex items-center gap-1 mb-1">
+        {brief && briefSummary ? (
+          <div className="mb-3 rounded-xl bg-blue-50/60 border border-blue-100 px-3 py-2.5">
+            <div className="flex items-center gap-1 mb-1.5">
               <Sparkles className="h-3 w-3 text-[#0851A0]" />
-              <span className="text-[10px] font-semibold text-[#0851A0] uppercase tracking-wide">AI Insight</span>
+              <span className="text-[10px] font-semibold text-[#0851A0] uppercase tracking-wide">
+                AI Summary · {briefSuppCount} supp
+              </span>
             </div>
-            <p className="text-xs text-gray-700 leading-snug line-clamp-2">
-              <span className="font-medium">Focus:</span> {brief.essay_focus}
-            </p>
-            <p className="text-xs text-gray-500 leading-snug line-clamp-1">
-              <span className="font-medium">Profile:</span> {brief.applicant_profile}
-            </p>
-            <p className="text-[10px] text-gray-400 italic leading-snug line-clamp-1">
-              &ldquo;{brief.standout_quote}&rdquo;
-            </p>
+            <p className="text-xs text-gray-700 leading-snug line-clamp-3">{briefSummary}</p>
+            {briefTopics.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-2">
+                {briefTopics.map((t) => (
+                  <span
+                    key={t}
+                    className="rounded-full bg-white border border-blue-100 px-1.5 py-0.5 text-[10px] font-medium text-[#0851A0]"
+                  >
+                    {t.replace(/_/g, " ")}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         ) : (app.tags ?? []).length > 0 ? (
           <div className="flex flex-wrap gap-1 mb-3">

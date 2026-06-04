@@ -1,10 +1,38 @@
 import type { Metadata } from "next";
-import { Inter, Playfair_Display, Architects_Daughter } from "next/font/google";
+import {
+  Hanken_Grotesk,
+  Newsreader,
+  Spline_Sans_Mono,
+  Architects_Daughter,
+} from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
-const playfair = Playfair_Display({ subsets: ["latin"], variable: "--font-serif" });
-const architectsDaughter = Architects_Daughter({ subsets: ["latin"], weight: "400", variable: "--font-hand" });
+// "Manuscript" type system (from the redesign):
+//   sans  → Hanken Grotesk (UI)
+//   serif → Newsreader, with italics (display + essay reading)
+//   mono  → Spline Sans Mono (eyebrow / marginalia labels)
+const sans = Hanken_Grotesk({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-sans",
+});
+const serif = Newsreader({
+  subsets: ["latin"],
+  style: ["normal", "italic"],
+  weight: ["400", "500", "600"],
+  variable: "--font-serif",
+});
+const mono = Spline_Sans_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  variable: "--font-mono",
+});
+// Retained for the few non-redesigned surfaces that still use the hand font.
+const architectsDaughter = Architects_Daughter({
+  subsets: ["latin"],
+  weight: "400",
+  variable: "--font-hand",
+});
 
 export const metadata: Metadata = {
   title: {
@@ -27,9 +55,19 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  // suppressHydrationWarning silences the harmless attribute mismatch caused by
+  // browser extensions (Grammarly, Solvely, etc.) that inject attributes onto
+  // <html>/<body> before React hydrates. It only suppresses one level deep on
+  // these elements — it does NOT hide real hydration bugs in page components.
   return (
-    <html lang="en" className={`${inter.variable} ${playfair.variable} ${architectsDaughter.variable}`}>
-      <body className="font-sans">{children}</body>
+    <html
+      lang="en"
+      className={`${sans.variable} ${serif.variable} ${mono.variable} ${architectsDaughter.variable}`}
+      suppressHydrationWarning
+    >
+      <body className="font-sans" suppressHydrationWarning>
+        {children}
+      </body>
     </html>
   );
 }

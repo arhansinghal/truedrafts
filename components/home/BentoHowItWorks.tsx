@@ -286,7 +286,7 @@ function StatsCard() {
         {[
           { n: "500+", label: "essays published" },
           { n: "30+",  label: "universities" },
-          { n: "50%",  label: "writers earn" },
+          { n: "48h",  label: "avg. review" },
         ].map(({ n, label }) => (
           <div key={n} className="flex items-baseline gap-2">
             <span className={`text-3xl font-bold font-hand transition-all duration-700 ${dim ? "text-gray-300" : "text-[#0851A0]"}`}>{n}</span>

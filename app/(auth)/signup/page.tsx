@@ -102,7 +102,7 @@ export default function SignupPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-gray-900 text-sm">Share my essays &amp; earn</p>
-                    <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">Upload your accepted applications and keep 50% of every sale</p>
+                    <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">Upload your accepted applications and earn on every sale</p>
                   </div>
                   <ChevronRight className="h-4 w-4 text-gray-300 group-hover:text-[#0851A0] transition-colors mt-3.5 flex-shrink-0" />
                 </button>

@@ -5,8 +5,15 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+// Cents here are INR paise. Render as ₹ with Indian-grouping commas. Drops the
+// decimal when there are 0 paise (the common case), keeps two decimals otherwise.
 export function formatCents(cents: number): string {
-  return `$${(cents / 100).toFixed(2)}`;
+  const rupees = cents / 100;
+  const fractionDigits = Number.isInteger(rupees) ? 0 : 2;
+  return `₹${rupees.toLocaleString("en-IN", {
+    minimumFractionDigits: fractionDigits,
+    maximumFractionDigits: fractionDigits,
+  })}`;
 }
 
 export function generateSlug(title: string): string {

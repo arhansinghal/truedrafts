@@ -260,7 +260,7 @@ export function EssayUploadForm({
               />
             </div>
             <p className="mt-1 text-xs text-gray-400">
-              You keep 50% = ${earnings}
+              You earn ${earnings} per sale
             </p>
           </div>
           <SelectField
@@ -562,8 +562,8 @@ export function EssayUploadForm({
               {/* Earnings preview */}
               {price && !isNaN(parseFloat(price)) && parseFloat(price) > 0 && (
                 <p className="mt-2 text-sm font-medium text-[#0851A0]">
-                  You&apos;ll keep{" "}
-                  <span className="font-bold">${earnings}</span> (50%)
+                  You&apos;ll earn{" "}
+                  <span className="font-bold">${earnings}</span> per sale
                 </p>
               )}
             </div>

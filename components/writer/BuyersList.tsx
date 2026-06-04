@@ -41,16 +41,10 @@ export function BuyersList({ buyers }: { buyers: BuyerEntry[] }) {
             </p>
           </div>
 
-          {/* Payout + time + contact */}
+          {/* Payout + time */}
           <div className="text-right shrink-0 flex flex-col items-end gap-1">
             <p className="text-sm font-semibold text-green-600">+{formatCents(b.writerPayoutCents)}</p>
             <p className="text-xs text-gray-400">{timeAgo(b.purchasedAt)}</p>
-            <a
-              href={`mailto:${b.buyerEmail}`}
-              className="mt-1 text-xs border border-gray-300 rounded px-2 py-0.5 text-gray-600 hover:bg-gray-50"
-            >
-              Contact
-            </a>
           </div>
         </div>
       ))}

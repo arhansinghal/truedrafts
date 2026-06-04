@@ -4,7 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Check, ChevronDown, Upload, X, ImageIcon, Save } from "lucide-react";
+import { Check, CheckCircle, ChevronDown, Upload, X, ImageIcon, Save } from "lucide-react";
 import type { University } from "@/lib/db/schema";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -24,6 +24,17 @@ const YEARS = Array.from({ length: 6 }, (_, i) => CURRENT_YEAR - i);
 const COMMON_APP_WORD_LIMIT = 700;
 
 const STEP_LABELS = ["Application Setup", "Common App Essay", "Supplemental Essays", "Review & Submit"];
+
+// Writer's pledge shown on the Review & Submit step. Preserves the substance of
+// every disclaimer item — including the bundle-inclusion consent, which is
+// legally stamped (users.writersAgreedBundlesAt) when the writer agrees.
+const PLEDGE_ITEMS = [
+  "These essays are my own original work, written for my college application.",
+  "I was genuinely admitted to the university listed above.",
+  "I won't submit work written by someone else or AI-generated content.",
+  "I understand TrueDrafts reviews every submission before it goes live (24–48h), and that misrepresentation means permanent removal.",
+  "I allow TrueDrafts to include my application in curated bundle deals (e.g. “Ivy League Pack”), with bundle proceeds shared pro-rata across the included applications at the same rate as an individual sale.",
+];
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -286,6 +297,23 @@ export function ApplicationUploadWizard({
 
   const selectedUni = universities.find((u) => u.id === d.universityId);
 
+  // Table-of-contents list for the Review & Submit step.
+  const reviewEssays = [
+    ...(d.submittedCommonApp
+      ? [{
+          kind: "Common App essay",
+          label: d.caPromptIndex >= 0 ? `Prompt ${d.caPromptIndex + 1} · Personal statement` : "Personal statement",
+          words: countWords(d.caContent),
+        }]
+      : []),
+    ...d.supplementals.map((s, i) => ({
+      kind: "Supplemental",
+      label: (s.prompt && s.prompt.trim()) || `Supplemental ${i + 1}`,
+      words: countWords(s.content),
+    })),
+  ];
+  const totalReviewEssays = reviewEssays.length;
+
   // ── Save draft ──────────────────────────────────────────────────────────────
   const saveDraft = useCallback(async (currentStep: number, data: WizardData) => {
     setSaveStatus("saving");
@@ -325,7 +353,7 @@ export function ApplicationUploadWizard({
   // Step validity
   const step1Valid = !!d.universityId && !!d.admissionProof;
   const step2Valid = !d.submittedCommonApp || (d.caPromptIndex >= 0 && d.caContent.trim().length > 0 && !!d.caScreenshot);
-  const step3Valid = d.supplementals.every((s) => s.content.trim().length > 0);
+  const step3Valid = d.supplementals.every((s) => s.prompt.trim().length > 0 && s.content.trim().length > 0);
   const step4Valid = d.disclaimerChecked;
 
   async function saveAndContinue(nextStep?: number) {
@@ -519,7 +547,7 @@ export function ApplicationUploadWizard({
                 <h3 className="font-semibold text-gray-800">Supplemental Essay {i + 1}</h3>
               </div>
               <div>
-                <Label className="mb-1.5 block">Essay prompt <span className="text-gray-400 font-normal">(optional)</span></Label>
+                <Label className="mb-1.5 block">Essay prompt <span className="text-red-500">*</span></Label>
                 <textarea value={s.prompt} onChange={(e) => updateSupplemental(i, "prompt", e.target.value)}
                   placeholder="Paste the prompt here, e.g. 'Why [University]?'" rows={2}
                   className="w-full resize-none rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0851A0]" />
@@ -537,61 +565,120 @@ export function ApplicationUploadWizard({
 
       {/* ── Step 4: Review & Submit ── */}
       {step === 4 && (
-        <StepCard title="Review & Submit" subtitle="Confirm your application details and agree to our terms.">
-          {/* Summary */}
-          <div className="rounded-xl border border-[#0851A0]/10 bg-[#f0f5ff] p-5 space-y-2.5 text-sm">
-            <p className="text-xs font-semibold uppercase tracking-widest text-[#0851A0]/60 mb-1">Application Summary</p>
-            <div className="grid grid-cols-2 gap-y-1.5">
-              <span className="text-gray-500">University</span>
-              <span className="font-medium text-gray-800">{selectedUni?.name ?? "—"}</span>
-              <span className="text-gray-500">Year admitted</span>
-              <span className="font-medium text-gray-800">{d.admittedYear}</span>
-              <span className="text-gray-500">Common App</span>
-              <span className="font-medium text-gray-800">{d.submittedCommonApp ? "Yes" : "No"}</span>
-              <span className="text-gray-500">Supplementals</span>
-              <span className="font-medium text-gray-800">{d.numSupplementals}</span>
-              <span className="text-gray-500">Total essays</span>
-              <span className="font-medium text-[#0851A0] font-semibold">
-                {(d.submittedCommonApp ? 1 : 0) + d.numSupplementals} essays
-              </span>
-            </div>
-          </div>
+        <div className="anim-in mx-auto max-w-2xl">
+          <div
+            className="rounded-[14px] p-7"
+            style={{ background: "var(--surface)", border: "1px solid var(--line)", boxShadow: "var(--shadow)" }}
+          >
+            <div className="eyebrow mb-2">Step 4</div>
+            <h2 className="serif text-[24px] font-semibold" style={{ color: "var(--ink)", letterSpacing: "-.01em" }}>
+              Review &amp; submit
+            </h2>
+            <p className="mt-1.5 text-sm" style={{ color: "var(--ink-soft)" }}>
+              Confirm your details and agree to our terms.
+            </p>
 
-          {/* Disclaimer */}
-          <div className="rounded-xl border border-[#0851A0]/15 bg-[#e8f1fa] p-5 space-y-3">
-            <p className="text-sm font-semibold text-[#0851A0]">Before you submit, please confirm:</p>
-            <ul className="text-sm text-gray-600 space-y-1.5 list-disc list-inside">
-              <li>The essays I&apos;m submitting are my own original work written for my college application.</li>
-              <li>I confirm I was genuinely admitted to the university listed above.</li>
-              <li>I understand TrueDrafts will review my submission before it goes live (24–48 hours).</li>
-              <li>I agree not to submit essays written by someone else or AI-generated content.</li>
-              <li>I understand that misrepresentation may result in permanent removal from the platform.</li>
-            </ul>
-            <label className="flex items-start gap-3 cursor-pointer mt-3 pt-3 border-t border-[#0851A0]/10">
-              <div className="relative mt-0.5 shrink-0">
-                <input type="checkbox" checked={d.disclaimerChecked} onChange={(e) => set("disclaimerChecked", e.target.checked)} className="sr-only" />
-                <div className={["w-5 h-5 rounded border-2 flex items-center justify-center transition-all",
-                  d.disclaimerChecked ? "bg-[#0851A0] border-[#0851A0]" : "bg-white border-[#0851A0]/30",
-                ].join(" ")}>
-                  {d.disclaimerChecked && <Check className="w-3 h-3 text-white" />}
+            <div className="mt-[22px] flex flex-col gap-5">
+              {/* Application summary — a table of contents */}
+              <div style={{ border: "1px solid var(--line)", borderRadius: 14, overflow: "hidden" }}>
+                <div
+                  className="flex items-center gap-[13px]"
+                  style={{ padding: "16px 18px", borderBottom: "1px solid var(--line-soft)" }}
+                >
+                  <div
+                    className="flex h-[42px] w-[42px] shrink-0 items-center justify-center overflow-hidden rounded-[10px]"
+                    style={{ background: "#fff", border: "1px solid var(--line)" }}
+                  >
+                    {selectedUni ? (
+                      <Image src={`/uni_logos/${selectedUni.slug}.png`} alt={selectedUni.name} width={34} height={34} className="h-[76%] w-[76%] object-contain" unoptimized />
+                    ) : (
+                      <span style={{ width: 42, height: 42, borderRadius: 10, background: "var(--paper-2)" }} />
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-base font-bold" style={{ color: "var(--ink)" }}>{selectedUni?.name ?? "—"}</div>
+                    <div className="eyebrow mt-[3px]">
+                      Class of {d.admittedYear} · {totalReviewEssays} essay{totalReviewEssays !== 1 ? "s" : ""}
+                    </div>
+                  </div>
+                  <span
+                    className="inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] font-semibold"
+                    style={{ background: "var(--emerald-wash)", color: "var(--emerald)" }}
+                  >
+                    <CheckCircle className="h-3 w-3" /> Ready
+                  </span>
+                </div>
+                <div style={{ padding: "4px 18px" }}>
+                  {reviewEssays.map((e, i) => (
+                    <div
+                      key={i}
+                      className="flex items-center gap-[13px]"
+                      style={{ padding: "12px 0", borderTop: i ? "1px solid var(--line-soft)" : "none" }}
+                    >
+                      <span className="mono shrink-0 text-[12px] font-semibold" style={{ color: "var(--td-blue)", width: 18 }}>
+                        {String(i + 1).padStart(2, "0")}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-sm font-semibold" style={{ color: "var(--ink)" }}>{e.label}</div>
+                        <div className="eyebrow mt-0.5">{e.kind}</div>
+                      </div>
+                      <span
+                        className="mono shrink-0 text-[12.5px]"
+                        style={{ color: e.words ? "var(--ink-faint)" : "var(--amber)" }}
+                      >
+                        {e.words ? `${e.words} words` : "empty"}
+                      </span>
+                    </div>
+                  ))}
                 </div>
               </div>
-              <span className="text-sm text-gray-700 font-medium leading-snug">
-                I confirm all of the above and agree to TrueDrafts&apos; Terms of Service.
-              </span>
-            </label>
+
+              {/* Writer's pledge */}
+              <div>
+                <div className="eyebrow mb-[13px]">Your writer&apos;s pledge</div>
+                <div className="flex flex-col gap-3">
+                  {PLEDGE_ITEMS.map((t, i) => (
+                    <div key={i} className="flex items-start gap-[11px]">
+                      <CheckCircle className="mt-px h-[18px] w-[18px] shrink-0" style={{ color: "var(--emerald)" }} />
+                      <span className="text-[13.5px] leading-[1.5]" style={{ color: "var(--ink-soft)" }}>{t}</span>
+                    </div>
+                  ))}
+                </div>
+                <label
+                  className="mt-[18px] flex cursor-pointer items-center gap-3 rounded-[12px] px-4 py-3.5 transition-all"
+                  style={{
+                    border: "1.5px solid " + (d.disclaimerChecked ? "var(--emerald)" : "var(--line)"),
+                    background: d.disclaimerChecked ? "var(--emerald-wash)" : "var(--surface)",
+                  }}
+                >
+                  <span
+                    className="inline-flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-[7px]"
+                    style={{
+                      border: "1.5px solid " + (d.disclaimerChecked ? "var(--emerald)" : "var(--ink-faint)"),
+                      background: d.disclaimerChecked ? "var(--emerald)" : "#fff",
+                    }}
+                  >
+                    {d.disclaimerChecked && <Check className="h-3.5 w-3.5 text-white" />}
+                  </span>
+                  <input type="checkbox" checked={d.disclaimerChecked} onChange={(e) => set("disclaimerChecked", e.target.checked)} className="hidden" />
+                  <span className="text-sm font-semibold leading-tight" style={{ color: "var(--ink)" }}>
+                    I confirm all of the above and agree to TrueDrafts&apos; Terms of Service.
+                  </span>
+                </label>
+              </div>
+
+              {error && (
+                <div className="rounded-lg px-4 py-3 text-sm" style={{ background: "var(--red-wash)", color: "var(--td-red)" }}>{error}</div>
+              )}
+
+              <NavRow onBack={goBack} nextDisabled={!step4Valid} isSubmit />
+
+              <p className="text-center text-xs" style={{ color: "var(--ink-faint)" }}>
+                Review takes 24–48 hours. You&apos;ll be notified by email once your essays go live.
+              </p>
+            </div>
           </div>
-
-          {error && (
-            <div className="rounded-lg bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-600">{error}</div>
-          )}
-
-          <NavRow onBack={goBack} nextDisabled={!step4Valid} isSubmit />
-
-          <p className="text-xs text-gray-400 text-center">
-            Review takes 24–48 hours. You&apos;ll be notified by email once your essays go live.
-          </p>
-        </StepCard>
+        </div>
       )}
     </div>
   );
