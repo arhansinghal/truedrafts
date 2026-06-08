@@ -1,21 +1,20 @@
-// Sandbox PDF-import lab — AI extraction pipeline.
+// PDF-import — AI extraction pipeline.
 //
-// Primary path sends the PDFs to Claude natively as document blocks (verified
-// working on claude-haiku-4-5 with no beta header). Native PDFs preserve the
-// activities-table layout that unpdf flattens, and handle scanned pages.
-// If the document call hard-fails we fall back to unpdf text extraction +
-// the same prompt as plain text.
+// Primary path sends the PDFs to Claude natively as document blocks (preserves
+// the activities-table layout that unpdf flattens, and handles scanned pages).
+// If the document call hard-fails we fall back to unpdf text extraction + the
+// same prompt as plain text.
 
 import Anthropic from "@anthropic-ai/sdk";
 import { extractFromPdf } from "@/lib/studio/extract";
-import {
-  COMMON_APP_PROMPTS,
-  type ExtractionResult,
-  type ExtractedActivity,
-  type ExtractedSupplemental,
+import { COMMON_APP_PROMPTS } from "@/lib/common-app";
+import type {
+  ExtractionResult,
+  ExtractedActivity,
+  ExtractedSupplemental,
 } from "./schema";
 
-const MODEL = process.env.LABS_EXTRACT_MODEL ?? "claude-haiku-4-5-20251001";
+const MODEL = process.env.PDF_EXTRACT_MODEL ?? "claude-haiku-4-5-20251001";
 // Verbatim essay + supplementals + activities ≈ 3–6k output tokens. A small
 // cap silently truncates the JSON and the parse returns null — keep it high.
 const MAX_TOKENS = 8192;
@@ -46,10 +45,31 @@ export async function extractApplication(files: PdfInput[]): Promise<ExtractionR
   const parsed = extractJson<Partial<ExtractionResult>>(raw ?? "");
   if (!parsed) {
     throw new ExtractionError(
-      "AI returned no parseable result (possible truncation — try a single PDF, or set LABS_EXTRACT_MODEL to a Sonnet model).",
+      "AI returned no parseable result (possible truncation — try a single PDF, or set PDF_EXTRACT_MODEL to a Sonnet model).",
     );
   }
   return normalize(parsed);
+}
+
+// Resolve an extracted university name to a known university id (name + aliases).
+// Returns "" when there's no confident match — the wizard's step 1 then asks the
+// writer to pick. Server-side so the endpoint can map before seeding the draft.
+export function matchUniversity(
+  name: string,
+  unis: { id: string; name: string; aliases: string[] | null }[],
+): string {
+  const q = name.trim().toLowerCase();
+  if (!q) return "";
+  for (const u of unis) {
+    const n = u.name.toLowerCase();
+    if (n === q || n.includes(q) || q.includes(n)) return u.id;
+  }
+  for (const u of unis) {
+    if ((u.aliases ?? []).some((a) => a.toLowerCase() === q || q.includes(a.toLowerCase()))) {
+      return u.id;
+    }
+  }
+  return "";
 }
 
 // ─── Prompt ───────────────────────────────────────────────────────────────────
@@ -69,19 +89,17 @@ Return a single JSON object with EXACTLY these keys:
   "caPromptIndex": number,         // 0-6 = best-matching official prompt above, -1 if none/unknown
   "caContent": string,             // the FULL personal statement, VERBATIM
   "supplementals": [{"prompt": string, "content": string}],  // each supplemental/university-specific essay
-  "activities": [{"position": string, "organization": string, "description": string, "gradeLevels": string, "hoursPerWeek": string, "weeksPerYear": string}],
+  "activities": [{"position": string, "organization": string, "description": string}],
   "honorsAwards": string[],
   "intendedMajor": string,
-  "testScores": string,            // e.g. "SAT 1520, ACT 34" ("" if none)
   "notes": string                  // anything else useful + extraction caveats
 }
 
 Rules:
 - Essay and answer text must be VERBATIM — exact words, punctuation, and paragraph breaks from the source.
-- One activities entry per activity in the Common App activities section; keep the six columns separate.
+- One activities entry per activity in the Common App activities section: position/role, organization, and a short description.
 - The personal statement (Common App essay) goes ONLY in caContent, never in supplementals.
-- supplementals = university-specific essays/short answers with their full prompts.
-- gradeLevels like "9, 10, 11, 12"; hoursPerWeek/weeksPerYear as the printed numbers (strings).`;
+- supplementals = university-specific essays/short answers with their full prompts.`;
 }
 
 // ─── Call paths ───────────────────────────────────────────────────────────────
@@ -141,7 +159,6 @@ async function callWithExtractedText(files: PdfInput[]): Promise<string | null> 
 
 // ─── Parsing & normalization ──────────────────────────────────────────────────
 
-// Same approach as lib/llm.ts extractJson (not exported there).
 function extractJson<T>(text: string): T | null {
   const stripped = text.trim();
   try {
@@ -176,9 +193,6 @@ function normalize(p: Partial<ExtractionResult>): ExtractionResult {
         position: str(a?.position),
         organization: str(a?.organization),
         description: str(a?.description),
-        gradeLevels: str(a?.gradeLevels),
-        hoursPerWeek: str(a?.hoursPerWeek),
-        weeksPerYear: str(a?.weeksPerYear),
       }))
     : [];
 
@@ -192,7 +206,6 @@ function normalize(p: Partial<ExtractionResult>): ExtractionResult {
     activities,
     honorsAwards: Array.isArray(p.honorsAwards) ? p.honorsAwards.map(str).filter(Boolean) : [],
     intendedMajor: str(p.intendedMajor),
-    testScores: str(p.testScores),
     notes: str(p.notes),
   };
 }

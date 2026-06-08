@@ -220,11 +220,11 @@ function UnlockCard() {
           Unlock &amp; Read
         </h3>
         <p className={`text-sm leading-relaxed transition-all duration-700 ${dim ? "text-gray-300" : "text-gray-500"}`}>
-          Pay once per essay — typically $5–15. Yours to keep in your personal library forever.
+          Pay once per essay — typically ₹500–1,500. Yours to keep in your personal library forever.
         </p>
       </div>
       <div className="mt-4 flex flex-wrap gap-2">
-        {["$5", "$8", "$12", "$15"].map((p) => (
+        {["₹500", "₹800", "₹1,200", "₹1,500"].map((p) => (
           <span key={p}
             className={`text-xs rounded-full px-3 py-1 font-semibold shadow-sm border transition-all duration-700 ${
               dim

@@ -12,6 +12,7 @@ export async function PATCH(req: Request) {
   if (body.bio !== undefined) updates.bio = body.bio?.trim() ?? null;
   if (body.country !== undefined) updates.country = body.country?.trim() ?? null;
   if (body.activities !== undefined) updates.activities = JSON.stringify(body.activities ?? []);
+  if (body.honors !== undefined) updates.honors = JSON.stringify(body.honors ?? []);
 
   if (Object.keys(updates).length === 0) return Response.json({ error: "Nothing to update" }, { status: 400 });
 

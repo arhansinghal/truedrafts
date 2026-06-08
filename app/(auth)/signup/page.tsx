@@ -32,6 +32,9 @@ export default function SignupPage() {
     await signIn.social({
       provider: "google",
       callbackURL: role === "writer" ? "/signup/writer" : "/dashboard",
+      // Implicit sign-up is disabled on the provider — the signup flow is the
+      // only place allowed to create a new account.
+      requestSignUp: true,
     });
   }
 

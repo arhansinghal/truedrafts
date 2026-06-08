@@ -21,6 +21,11 @@ export const auth = betterAuth({
         ? {
             clientId: process.env.GOOGLE_CLIENT_ID,
             clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+            // Google sign-in does NOT auto-create accounts. Only the signup flow
+            // passes requestSignUp:true. So an unknown Google account on /login is
+            // rejected (→ "sign up instead") rather than silently registered —
+            // and a deleted account can't quietly come back.
+            disableImplicitSignUp: true,
           }
         : undefined,
   },

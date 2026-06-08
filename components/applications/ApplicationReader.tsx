@@ -38,6 +38,7 @@ export interface ReaderData {
   priceCents: number;
   university: { name: string; slug: string };
   admittedYear?: number | null;
+  major?: string | null;
   essays: ReaderEssay[];
   editorNote?: string | null;
   themes: string[];
@@ -45,6 +46,7 @@ export interface ReaderData {
   readMins: number;
   isPurchased: boolean;
   isLoggedIn: boolean;
+  viewerRole?: string | null;
   watermarkEmail?: string | null;
   writer?: { name: string; bio?: string | null; verifiedAdmit?: boolean } | null;
 }
@@ -200,6 +202,7 @@ function Para({
   bodyFont,
   showNotes,
   drop,
+  reserveNote,
 }: {
   text: string;
   note?: string;
@@ -208,21 +211,29 @@ function Para({
   bodyFont: string;
   showNotes: boolean;
   drop?: boolean;
+  reserveNote: boolean;
 }) {
   const body = drop ? text.slice(1) : text;
+  const para = (
+    <p
+      className={bodyFont === "serif" ? "serif" : ""}
+      style={{ margin: 0, fontSize: fontPx, lineHeight: lineH, color: "var(--ink)", letterSpacing: bodyFont === "serif" ? "0" : "-.005em" }}
+    >
+      {drop && (
+        <span className="serif float-left pr-2.5 font-semibold" style={{ fontSize: fontPx * 3.1, lineHeight: 0.8, color: "var(--td-blue)", marginTop: 8 }}>
+          {text[0]}
+        </span>
+      )}
+      {body}
+    </p>
+  );
+
+  // No margin-notes column for this chapter → single, full-width paragraph.
+  if (!reserveNote) return <div className="mt-[1.15em]">{para}</div>;
+
   return (
     <div className="mt-[1.15em] grid items-start gap-[34px]" style={{ gridTemplateColumns: "minmax(0,1fr) 232px" }}>
-      <p
-        className={bodyFont === "serif" ? "serif" : ""}
-        style={{ margin: 0, fontSize: fontPx, lineHeight: lineH, color: "var(--ink)", letterSpacing: bodyFont === "serif" ? "0" : "-.005em" }}
-      >
-        {drop && (
-          <span className="serif float-left pr-2.5 font-semibold" style={{ fontSize: fontPx * 3.1, lineHeight: 0.8, color: "var(--td-blue)", marginTop: 8 }}>
-            {text[0]}
-          </span>
-        )}
-        {body}
-      </p>
+      {para}
       <div className="relative" style={{ minHeight: 1 }}>
         {note && showNotes && (
           <div style={{ opacity: 0.78 }}>
@@ -262,37 +273,54 @@ function Chapter({
   watermark?: string;
 }) {
   const paras = locked ? essay.paras.slice(0, 3) : essay.paras;
+  // Only reserve the right-hand margin-notes column when this chapter actually
+  // has notes to show. Otherwise the text reads as a single centered column
+  // (no dead 232px gutter pulling everything left).
+  const hasNotes = showNotes && marginNotes.some((n) => n && n.trim());
+
+  const header = (
+    <>
+      <div className="mb-3.5 flex items-center gap-3">
+        <span className="mono text-[13px] font-semibold" style={{ color: "var(--td-blue)" }}>{String(index + 1).padStart(2, "0")}</span>
+        <span className="h-px w-7" style={{ background: "var(--blue-line)" }} />
+        <span className="eyebrow">{essay.kind}{essay.words ? ` · ${essay.words} words` : ""}</span>
+      </div>
+      <h2 className="serif mb-3.5 text-[27px] font-semibold" style={{ color: "var(--ink)", letterSpacing: "-.015em" }}>{essay.title}</h2>
+      {essay.prompt && (
+        <div className="serif italic" style={{ fontSize: 15, lineHeight: 1.55, color: "var(--ink-faint)", paddingLeft: 16, borderLeft: "2px solid var(--line)" }}>
+          {essay.prompt}
+        </div>
+      )}
+    </>
+  );
+
   return (
     <section style={{ scrollMarginTop: 80 }}>
-      <div className="mb-[30px] grid gap-[34px]" style={{ gridTemplateColumns: "minmax(0,1fr) 232px" }}>
-        <div>
-          <div className="mb-3.5 flex items-center gap-3">
-            <span className="mono text-[13px] font-semibold" style={{ color: "var(--td-blue)" }}>{String(index + 1).padStart(2, "0")}</span>
-            <span className="h-px w-7" style={{ background: "var(--blue-line)" }} />
-            <span className="eyebrow">{essay.kind}{essay.words ? ` · ${essay.words} words` : ""}</span>
+      {/* Centered reading measure when there are no margin notes. */}
+      <div className={hasNotes ? undefined : "mx-auto"} style={hasNotes ? undefined : { maxWidth: 660 }}>
+        {hasNotes ? (
+          <div className="mb-[30px] grid gap-[34px]" style={{ gridTemplateColumns: "minmax(0,1fr) 232px" }}>
+            <div>{header}</div>
+            <div />
           </div>
-          <h2 className="serif mb-3.5 text-[27px] font-semibold" style={{ color: "var(--ink)", letterSpacing: "-.015em" }}>{essay.title}</h2>
-          {essay.prompt && (
-            <div className="serif italic" style={{ fontSize: 15, lineHeight: 1.55, color: "var(--ink-faint)", paddingLeft: 16, borderLeft: "2px solid var(--line)" }}>
-              {essay.prompt}
-            </div>
-          )}
+        ) : (
+          <div className="mb-[30px]">{header}</div>
+        )}
+        <div style={watermark ? { backgroundImage: watermark, backgroundRepeat: "repeat" } : undefined}>
+          {paras.map((p, i) => (
+            <Para
+              key={i}
+              text={p}
+              note={marginNotes[i]}
+              fontPx={fontPx}
+              lineH={lineH}
+              bodyFont={bodyFont}
+              showNotes={showNotes}
+              drop={index === 0 && i === 0}
+              reserveNote={hasNotes}
+            />
+          ))}
         </div>
-        <div />
-      </div>
-      <div style={watermark ? { backgroundImage: watermark, backgroundRepeat: "repeat" } : undefined}>
-        {paras.map((p, i) => (
-          <Para
-            key={i}
-            text={p}
-            note={marginNotes[i]}
-            fontPx={fontPx}
-            lineH={lineH}
-            bodyFont={bodyFont}
-            showNotes={showNotes}
-            drop={index === 0 && i === 0}
-          />
-        ))}
       </div>
     </section>
   );
@@ -494,7 +522,7 @@ function Frontispiece({ data }: { data: ReaderData }) {
     <div className="relative pt-14 text-center">
       <div className="mb-[22px] inline-flex items-center gap-2.5">
         <UniLogo slug={data.university.slug} name={data.university.name} size={30} radius={8} />
-        <span className="eyebrow">{data.university.name}{data.admittedYear ? ` · Class of ${data.admittedYear}` : ""}</span>
+        <span className="eyebrow">{data.university.name}{data.admittedYear ? ` · Class of ${data.admittedYear}` : ""}{data.major ? ` · ${data.major}` : ""}</span>
       </div>
       <h1 className="serif mx-auto font-medium" style={{ fontSize: "clamp(40px, 6vw, 68px)", lineHeight: 1.04, letterSpacing: "-.025em", color: "var(--ink)", maxWidth: 760 }}>
         {data.title}
@@ -572,6 +600,7 @@ function UnlockGate({ data }: { data: ReaderData }) {
             applicationSlug={data.slug}
             priceCents={data.priceCents}
             isLoggedIn={data.isLoggedIn}
+            viewerRole={data.viewerRole}
           />
         </div>
         <div className="mt-[22px] flex items-center justify-center gap-[18px]">

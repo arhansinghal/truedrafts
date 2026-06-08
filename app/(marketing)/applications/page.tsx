@@ -42,7 +42,6 @@ const CARD_COLUMNS = {
   purchases: true,
   submittedCommonApp: true,
   numSupplementals: true,
-  insightBrief: true,
 } as const;
 
 const SORT_OPTIONS = {

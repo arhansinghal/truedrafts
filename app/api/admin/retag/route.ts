@@ -74,7 +74,7 @@ export async function POST(req: Request) {
         vibeMetadata: JSON.stringify(meta),
         vibeTone: meta.tone,
         vibeSearchText: buildVibeSearchText(meta),
-        ...(meta.major ? { major: meta.major } : {}),
+        ...(meta.major && !app.major ? { major: meta.major } : {}),
       })
       .where(eq(collegeApplications.id, app.id));
 

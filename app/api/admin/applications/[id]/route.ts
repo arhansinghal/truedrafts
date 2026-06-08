@@ -45,6 +45,7 @@ export async function PATCH(
     "admissionProofUrl",
     "supplementals",
     "tags",
+    "major",
     "priceCents",
   ] as const;
 

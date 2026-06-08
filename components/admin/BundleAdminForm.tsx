@@ -233,7 +233,7 @@ export function BundleAdminForm({ initial }: Props) {
               />
             </Field>
           ) : (
-            <Field label="Flat price (USD)">
+            <Field label="Flat price (INR)">
               <Input
                 type="number"
                 step="0.01"
@@ -505,7 +505,7 @@ function RuleBuilder({ rule, onChange }: { rule: BundleRule; onChange: (r: Bundl
         />
       </Field>
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Min price (USD)">
+        <Field label="Min price (INR)">
           <Input
             type="number"
             step="0.01"
@@ -515,7 +515,7 @@ function RuleBuilder({ rule, onChange }: { rule: BundleRule; onChange: (r: Bundl
             }
           />
         </Field>
-        <Field label="Max price (USD)">
+        <Field label="Max price (INR)">
           <Input
             type="number"
             step="0.01"

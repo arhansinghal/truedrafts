@@ -100,7 +100,7 @@ export function EssayTeaserSection() {
             <div className="px-6 pb-6 pt-3 flex flex-col items-center">
               <Link href="/applications" className="w-full">
                 <button className="relative w-full overflow-hidden bg-[#0851A0] hover:bg-[#063d85] text-white text-sm font-semibold px-8 py-3 rounded-xl transition-all duration-200 hover:scale-[1.02]">
-                  <span className="relative z-10">Unlock Full Essay — $8</span>
+                  <span className="relative z-10">Unlock Full Essay — ₹800</span>
                   {shimmer && (
                     <span
                       className="absolute inset-0 pointer-events-none z-20"

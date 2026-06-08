@@ -4,26 +4,16 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Check, CheckCircle, ChevronDown, Upload, X, ImageIcon, Save } from "lucide-react";
+import { Check, CheckCircle, ChevronDown, Upload, X, ImageIcon, Save, Plus, Trash2 } from "lucide-react";
 import type { University } from "@/lib/db/schema";
+import { COMMON_APP_PROMPTS, COMMON_APP_WORD_LIMIT } from "@/lib/common-app";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const COMMON_APP_PROMPTS = [
-  "Some students have a background, identity, interest, or talent that is so meaningful they believe their application would be incomplete without it. If this sounds like you, then please share your story.",
-  "The lessons we take from obstacles we encounter can be fundamental to later success. Recount a time when you faced a challenge, setback, or failure. How did it affect you, and what did you learn from the experience?",
-  "Reflect on a time when you questioned or challenged a belief or idea. What prompted your thinking? What was the outcome?",
-  "Reflect on something that someone has done for you that has made you happy or thankful in a surprising way. How has this gratitude affected or motivated you?",
-  "Discuss an accomplishment, event, or realization that sparked a period of personal growth and a new understanding of yourself or others.",
-  "Describe a topic, idea, or concept you find so engaging that it makes you lose all track of time. Why does it captivate you? What or who do you turn to when you want to learn more?",
-  "Share an essay on any topic of your choice. It can be one you've already written, one that responds to a different prompt, or one of your own design.",
-];
-
 const CURRENT_YEAR = new Date().getFullYear();
 const YEARS = Array.from({ length: 6 }, (_, i) => CURRENT_YEAR - i);
-const COMMON_APP_WORD_LIMIT = 700;
 
-const STEP_LABELS = ["Application Setup", "Common App Essay", "Supplemental Essays", "Review & Submit"];
+const STEP_LABELS = ["Application Setup", "Common App Essay", "Supplemental Essays", "Profile & Major", "Review & Submit"];
 
 // Writer's pledge shown on the Review & Submit step. Preserves the substance of
 // every disclaimer item — including the bundle-inclusion consent, which is
@@ -43,6 +33,11 @@ interface SupplementalEntry {
   content: string;
 }
 
+interface ProfileEntry {
+  name: string;
+  description: string;
+}
+
 interface WizardData {
   // Step 1
   universityId: string;
@@ -54,9 +49,17 @@ interface WizardData {
   caPromptIndex: number;
   caContent: string;
   caScreenshot: string;
+  // True when this draft came from a PDF import — the uploaded Common App PDF is
+  // already proof, so the Common App screenshot isn't required.
+  pdfImported: boolean;
   // Step 3
   supplementals: SupplementalEntry[];
-  // Step 4
+  // Step 4 — Profile & Major (intendedMajor is application-level;
+  // activities/honors are the writer's profile-level lists, editable here)
+  intendedMajor: string;
+  activities: ProfileEntry[];
+  honors: ProfileEntry[];
+  // Step 5
   disclaimerChecked: boolean;
 }
 
@@ -237,6 +240,67 @@ function SaveBadge({ status }: { status: "idle" | "saving" | "saved" | "error" }
   );
 }
 
+// Numbered name + description list editor (activities / honors), styled to
+// match the writer profile page's Activities card.
+function ProfileListEditor({
+  items,
+  onChange,
+  namePlaceholder,
+  descPlaceholder,
+  addLabel,
+}: {
+  items: ProfileEntry[];
+  onChange: (next: ProfileEntry[]) => void;
+  namePlaceholder: string;
+  descPlaceholder: string;
+  addLabel: string;
+}) {
+  const wc = (t: string) => (t.trim() ? t.trim().split(/\s+/).length : 0);
+  return (
+    <div className="space-y-2.5">
+      {items.map((it, i) => (
+        <div key={i} className="rounded-xl border border-gray-200 p-3">
+          <div className="mb-2 flex items-center gap-2">
+            <span className="w-5 text-xs font-semibold text-[#0851A0]">{String(i + 1).padStart(2, "0")}</span>
+            <input
+              value={it.name}
+              placeholder={namePlaceholder}
+              onChange={(e) => onChange(items.map((x, idx) => (idx === i ? { ...x, name: e.target.value } : x)))}
+              className="h-8 flex-1 rounded-md border border-gray-200 px-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0851A0]"
+            />
+            <button
+              type="button"
+              onClick={() => onChange(items.filter((_, idx) => idx !== i))}
+              className="shrink-0 text-gray-400 hover:text-red-500"
+              aria-label="Remove"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          </div>
+          <textarea
+            value={it.description}
+            placeholder={descPlaceholder}
+            rows={2}
+            onChange={(e) => {
+              if (wc(e.target.value) > 100) return;
+              onChange(items.map((x, idx) => (idx === i ? { ...x, description: e.target.value } : x)));
+            }}
+            className="w-full resize-none rounded-md border border-gray-200 px-2.5 py-1.5 text-xs placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0851A0]"
+          />
+          <div className="mt-0.5 text-right text-[11px] text-gray-400">{wc(it.description)}/100 words</div>
+        </div>
+      ))}
+      <button
+        type="button"
+        onClick={() => onChange([...items, { name: "", description: "" }])}
+        className="inline-flex items-center gap-1 text-xs font-medium text-[#0851A0] hover:underline"
+      >
+        <Plus className="h-3.5 w-3.5" /> {addLabel}
+      </button>
+    </div>
+  );
+}
+
 // ─── Main wizard ───────────────────────────────────────────────────────────────
 
 const DEFAULT_DATA: WizardData = {
@@ -248,7 +312,11 @@ const DEFAULT_DATA: WizardData = {
   caPromptIndex: -1,
   caContent: "",
   caScreenshot: "",
+  pdfImported: false,
   supplementals: [{ prompt: "", content: "" }],
+  intendedMajor: "",
+  activities: [],
+  honors: [],
   disclaimerChecked: false,
 };
 
@@ -350,11 +418,11 @@ export function ApplicationUploadWizard({
     }
   }, [draftId, universities]);
 
-  // Step validity
+  // Step validity. Step 4 (Profile & Major) is optional — no validity gate.
   const step1Valid = !!d.universityId && !!d.admissionProof;
-  const step2Valid = !d.submittedCommonApp || (d.caPromptIndex >= 0 && d.caContent.trim().length > 0 && !!d.caScreenshot);
+  const step2Valid = !d.submittedCommonApp || (d.caPromptIndex >= 0 && d.caContent.trim().length > 0 && (d.pdfImported || !!d.caScreenshot));
   const step3Valid = d.supplementals.every((s) => s.prompt.trim().length > 0 && s.content.trim().length > 0);
-  const step4Valid = d.disclaimerChecked;
+  const step5Valid = d.disclaimerChecked;
 
   async function saveAndContinue(nextStep?: number) {
     await saveDraft(step, d);
@@ -362,21 +430,33 @@ export function ApplicationUploadWizard({
   }
 
   function goNext() {
-    const next = step === 1 ? (d.submittedCommonApp ? 2 : 3) : step === 2 ? 3 : step === 3 ? 4 : 4;
+    const next =
+      step === 1 ? (d.submittedCommonApp ? 2 : 3)
+      : step === 2 ? 3
+      : step === 3 ? 4
+      : step === 4 ? 5
+      : 5;
     saveAndContinue(next);
   }
 
   function goBack() {
-    const prev = step === 4 ? 3 : step === 3 ? (d.submittedCommonApp ? 2 : 1) : step === 2 ? 1 : 1;
+    const prev =
+      step === 5 ? 4
+      : step === 4 ? 3
+      : step === 3 ? (d.submittedCommonApp ? 2 : 1)
+      : step === 2 ? 1
+      : 1;
     setStep(prev);
   }
 
   // ── Submit application as one unit ─────────────────────────────────────────
   async function handleSubmit() {
     setError("");
-    if (!step4Valid) return;
+    if (!step5Valid) return;
     setLoading(true);
     try {
+      const cleanProfile = (list: ProfileEntry[]) =>
+        list.map((e) => ({ name: e.name.trim(), description: (e.description ?? "").trim() })).filter((e) => e.name);
       const res = await fetch("/api/writer/applications", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -390,6 +470,9 @@ export function ApplicationUploadWizard({
           commonAppScreenshotUrl: d.caScreenshot || null,
           supplementals: d.supplementals,
           numSupplementals: d.numSupplementals,
+          major: d.intendedMajor.trim() || null,
+          activities: cleanProfile(d.activities),
+          honors: cleanProfile(d.honors),
         }),
       });
       if (!res.ok) {
@@ -438,7 +521,7 @@ export function ApplicationUploadWizard({
 
   return (
     <div>
-      <StepIndicator current={step} totalSteps={4} />
+      <StepIndicator current={step} totalSteps={5} />
 
       {/* ── Step 1: Application Setup ── */}
       {step === 1 && (
@@ -522,9 +605,18 @@ export function ApplicationUploadWizard({
 
           <EssayTextarea value={d.caContent} onChange={(v) => set("caContent", v)} wordLimit={COMMON_APP_WORD_LIMIT} placeholder="Paste your Common App essay here…" />
 
-          <ImageUpload label={<>Common App Submission Screenshot <span className="text-red-500">*</span></>}
-            hint="Upload a screenshot of your Common App PDF showing the submitted essay."
-            value={d.caScreenshot} onChange={(v) => set("caScreenshot", v)} />
+          {d.pdfImported ? (
+            <div className="flex items-center gap-2.5 rounded-xl border border-[#0851A0]/15 bg-[#e8f1fa] px-4 py-3">
+              <Check className="h-4 w-4 shrink-0 text-[#0851A0]" />
+              <p className="text-sm text-[#0851A0]">
+                Verified from your uploaded Common App PDF — no screenshot needed.
+              </p>
+            </div>
+          ) : (
+            <ImageUpload label={<>Common App Submission Screenshot <span className="text-red-500">*</span></>}
+              hint="Upload a screenshot of your Common App PDF showing the submitted essay."
+              value={d.caScreenshot} onChange={(v) => set("caScreenshot", v)} />
+          )}
 
           <NavRow onBack={goBack} nextDisabled={!step2Valid} />
         </StepCard>
@@ -563,14 +655,60 @@ export function ApplicationUploadWizard({
         </div>
       )}
 
-      {/* ── Step 4: Review & Submit ── */}
+      {/* ── Step 4: Profile & Major (optional) ── */}
       {step === 4 && (
+        <StepCard
+          title="Profile & Major"
+          subtitle="Optional — your intended major shows on this application; activities and honors appear on your writer profile. Skip anytime."
+        >
+          <div>
+            <Label htmlFor="major" className="mb-1.5 block">
+              Intended major <span className="font-normal text-gray-400">(optional)</span>
+            </Label>
+            <input
+              id="major"
+              value={d.intendedMajor}
+              onChange={(e) => set("intendedMajor", e.target.value)}
+              placeholder="e.g. Computer Science"
+              className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0851A0]"
+            />
+          </div>
+          <div>
+            <Label className="mb-2 block">
+              Activities <span className="font-normal text-gray-400">(shown on your writer profile)</span>
+            </Label>
+            <ProfileListEditor
+              items={d.activities}
+              onChange={(v) => set("activities", v)}
+              namePlaceholder="Position — Organization"
+              descPlaceholder="Brief description (max 100 words)…"
+              addLabel="Add activity"
+            />
+          </div>
+          <div>
+            <Label className="mb-2 block">
+              Honors &amp; awards <span className="font-normal text-gray-400">(shown on your writer profile)</span>
+            </Label>
+            <ProfileListEditor
+              items={d.honors}
+              onChange={(v) => set("honors", v)}
+              namePlaceholder="Honor / award"
+              descPlaceholder="Brief description (optional)…"
+              addLabel="Add honor"
+            />
+          </div>
+          <NavRow onBack={goBack} />
+        </StepCard>
+      )}
+
+      {/* ── Step 5: Review & Submit ── */}
+      {step === 5 && (
         <div className="anim-in mx-auto max-w-2xl">
           <div
             className="rounded-[14px] p-7"
             style={{ background: "var(--surface)", border: "1px solid var(--line)", boxShadow: "var(--shadow)" }}
           >
-            <div className="eyebrow mb-2">Step 4</div>
+            <div className="eyebrow mb-2">Step 5</div>
             <h2 className="serif text-[24px] font-semibold" style={{ color: "var(--ink)", letterSpacing: "-.01em" }}>
               Review &amp; submit
             </h2>
@@ -633,6 +771,16 @@ export function ApplicationUploadWizard({
                 </div>
               </div>
 
+              {/* Profile & major summary */}
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-1.5 text-[13px]" style={{ color: "var(--ink-soft)" }}>
+                <span><span style={{ color: "var(--ink-faint)" }}>Major:</span>{" "}
+                  <strong style={{ color: "var(--ink)" }}>{d.intendedMajor.trim() || "—"}</strong></span>
+                <span><span style={{ color: "var(--ink-faint)" }}>Activities:</span>{" "}
+                  <strong style={{ color: "var(--ink)" }}>{d.activities.filter((a) => a.name.trim()).length}</strong></span>
+                <span><span style={{ color: "var(--ink-faint)" }}>Honors:</span>{" "}
+                  <strong style={{ color: "var(--ink)" }}>{d.honors.filter((h) => h.name.trim()).length}</strong></span>
+              </div>
+
               {/* Writer's pledge */}
               <div>
                 <div className="eyebrow mb-[13px]">Your writer&apos;s pledge</div>
@@ -671,7 +819,7 @@ export function ApplicationUploadWizard({
                 <div className="rounded-lg px-4 py-3 text-sm" style={{ background: "var(--red-wash)", color: "var(--td-red)" }}>{error}</div>
               )}
 
-              <NavRow onBack={goBack} nextDisabled={!step4Valid} isSubmit />
+              <NavRow onBack={goBack} nextDisabled={!step5Valid} isSubmit />
 
               <p className="text-center text-xs" style={{ color: "var(--ink-faint)" }}>
                 Review takes 24–48 hours. You&apos;ll be notified by email once your essays go live.

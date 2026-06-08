@@ -1,14 +1,14 @@
 import Link from "next/link";
 import Image from "next/image";
-import { ShoppingBag, Eye, FileText, User as UserIcon, Sparkles, Package } from "lucide-react";
+import { ShoppingBag, Eye, FileText, User as UserIcon, Package } from "lucide-react";
 import { formatCents } from "@/lib/utils";
 import type { Bundle, CollegeApplication, University, User } from "@/lib/db/schema";
-import { parseInsightBrief } from "./InsightPreview";
 
 // Only the columns the card actually renders. Deliberately narrow: list queries
 // must NOT pull heavyweight per-row columns (the 1024-dim insightBriefEmbedding
 // vector, full essay text, supplementals JSON) — doing so made Browse take ~8s.
-// See lib/db column-selection notes.
+// The AI summary (insightBrief) is intentionally NOT shown on browse cards —
+// only on the application detail page. See lib/db column-selection notes.
 export type AppWithRelations = Pick<
   CollegeApplication,
   | "id"
@@ -22,7 +22,6 @@ export type AppWithRelations = Pick<
   | "purchases"
   | "submittedCommonApp"
   | "numSupplementals"
-  | "insightBrief"
 > & {
   university: University;
   writer: Pick<User, "id" | "name" | "username" | "verifiedAdmit">;
@@ -37,11 +36,6 @@ export function ApplicationCard({
 }) {
   const supplementalCount = app.numSupplementals ?? 0;
   const essayCount = (app.submittedCommonApp ? 1 : 0) + supplementalCount;
-
-  const brief = parseInsightBrief(app.insightBrief);
-  const briefSummary = brief?.common_app?.summary?.trim();
-  const briefTopics = (brief?.common_app?.topics ?? []).slice(0, 3);
-  const briefSuppCount = brief?.num_supplementals ?? supplementalCount;
 
   return (
     <Link href={`/applications/${app.slug}`}>
@@ -89,36 +83,14 @@ export function ApplicationCard({
           </div>
         )}
 
-        {/* Insight Brief — AI-generated, shown when available */}
-        {brief && briefSummary ? (
-          <div className="mb-3 rounded-xl bg-blue-50/60 border border-blue-100 px-3 py-2.5">
-            <div className="flex items-center gap-1 mb-1.5">
-              <Sparkles className="h-3 w-3 text-[#0851A0]" />
-              <span className="text-[10px] font-semibold text-[#0851A0] uppercase tracking-wide">
-                AI Summary · {briefSuppCount} supp
-              </span>
-            </div>
-            <p className="text-xs text-gray-700 leading-snug line-clamp-3">{briefSummary}</p>
-            {briefTopics.length > 0 && (
-              <div className="flex flex-wrap gap-1 mt-2">
-                {briefTopics.map((t) => (
-                  <span
-                    key={t}
-                    className="rounded-full bg-white border border-blue-100 px-1.5 py-0.5 text-[10px] font-medium text-[#0851A0]"
-                  >
-                    {t.replace(/_/g, " ")}
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
-        ) : (app.tags ?? []).length > 0 ? (
+        {/* Tags (the AI summary lives only on the detail page, not here) */}
+        {(app.tags ?? []).length > 0 && (
           <div className="flex flex-wrap gap-1 mb-3">
             {(app.tags ?? []).slice(0, 3).map((t) => (
               <span key={t} className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] text-gray-500">{t}</span>
             ))}
           </div>
-        ) : null}
+        )}
 
         {/* Writer row — anonymous */}
         <div className="flex items-center gap-2 mb-3 mt-auto">

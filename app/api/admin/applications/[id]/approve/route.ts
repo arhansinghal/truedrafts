@@ -66,7 +66,8 @@ export async function POST(
         updates.vibeMetadata   = JSON.stringify(meta);
         updates.vibeTone       = meta.tone;
         updates.vibeSearchText = buildVibeSearchText(meta);
-        if (meta.major) updates.major = meta.major;
+        // Only AI-fill the major when the writer didn't provide one.
+        if (meta.major && !app.major) updates.major = meta.major;
       }
       if (brief) {
         updates.insightBrief = JSON.stringify(brief);

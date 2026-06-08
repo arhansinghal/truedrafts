@@ -9,6 +9,7 @@ import { WriterSidebarNav } from "@/components/writer/WriterSidebarNav";
 export default async function WriterLayout({ children }: { children: React.ReactNode }) {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) redirect("/login?redirect=/writer");
+  if (session.user.role === "admin") redirect("/admin");
   if (session.user.role !== "writer") redirect("/dashboard");
 
   const firstInitial = (session.user.name ?? "?").trim()[0]?.toUpperCase() ?? "?";

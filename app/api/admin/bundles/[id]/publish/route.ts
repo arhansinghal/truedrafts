@@ -47,7 +47,7 @@ export async function POST(
   const pricing = computeBundlePrice(bundle, members);
   if (pricing.finalPrice <= 0) {
     return Response.json(
-      { error: "Bundle final price must be > $0 — adjust pricing" },
+      { error: "Bundle final price must be > ₹0 — adjust pricing" },
       { status: 400 },
     );
   }

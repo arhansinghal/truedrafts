@@ -19,6 +19,11 @@ function GoogleLogo() {
 function LoginForm() {
   const searchParams = useSearchParams();
   const redirect = searchParams.get("redirect") ?? "/dashboard";
+  // better-auth redirects here with ?error=signup_disabled when someone tries to
+  // sign in with a Google account that has no TrueDrafts account (implicit
+  // sign-up is disabled). Anything else is a generic OAuth failure.
+  const oauthError = searchParams.get("error");
+  const noAccount = oauthError === "signup_disabled";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -45,7 +50,13 @@ function LoginForm() {
   }
 
   async function handleGoogle() {
-    await signIn.social({ provider: "google", callbackURL: "/api/auth/redirect" });
+    await signIn.social({
+      provider: "google",
+      callbackURL: "/api/auth/redirect",
+      // On an unknown Google account, better-auth lands back here with
+      // ?error=signup_disabled instead of silently creating an account.
+      errorCallbackURL: "/login",
+    });
   }
 
   return (
@@ -61,6 +72,26 @@ function LoginForm() {
             <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Welcome back</h1>
             <p className="text-sm text-gray-500 mt-1">Sign in to continue to TrueDrafts</p>
           </div>
+
+          {/* No-account notice (after a Google sign-in with no matching account) */}
+          {noAccount ? (
+            <div className="mb-5 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+              <p className="text-sm font-semibold text-amber-900">No account found</p>
+              <p className="mt-0.5 text-sm text-amber-800">
+                We couldn&apos;t find a TrueDrafts account for that Google login. Sign up to create one.
+              </p>
+              <Link
+                href="/signup"
+                className="mt-3 inline-flex items-center justify-center rounded-xl bg-[#0851A0] px-4 py-2 text-sm font-semibold text-white hover:bg-[#063d85] transition-colors"
+              >
+                Sign up instead
+              </Link>
+            </div>
+          ) : oauthError ? (
+            <div className="mb-5 rounded-2xl border border-red-100 bg-red-50 p-3 text-sm text-red-600">
+              Couldn&apos;t sign you in. Please try again.
+            </div>
+          ) : null}
 
           {/* Google */}
           <button

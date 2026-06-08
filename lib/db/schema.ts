@@ -95,6 +95,7 @@ export const users = pgTable("users", {
   graduationYear: integer("graduation_year"),
   country: text("country"),
   activities: text("activities").default("[]"), // JSON: [{name, description}]
+  honors: text("honors").default("[]"), // JSON: [{name, description}] — honors/awards
   // Stamped at submission time once writers have accepted the bundle-inclusion
   // clause in the application upload wizard. NULL for legacy/grandfathered apps.
   writersAgreedBundlesAt: timestamp("writers_agreed_bundles_at"),

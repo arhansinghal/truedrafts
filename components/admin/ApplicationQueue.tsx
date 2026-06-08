@@ -75,6 +75,7 @@ export function AdminApplicationQueue({ applications }: { applications: AppWithR
       commonAppContent: app.commonAppContent ?? "",
       supplementals: supps,
       tags: (app.tags ?? []).join(", "),
+      major: app.major ?? "",
     });
     setEditing(app.id);
   }
@@ -96,6 +97,7 @@ export function AdminApplicationQueue({ applications }: { applications: AppWithR
           commonAppContent: editData.commonAppContent,
           supplementals: supps,
           tags: (editData.tags as string).split(",").map((t) => t.trim()).filter(Boolean),
+          major: (editData.major as string)?.trim() || null,
         }),
       });
       if (res.ok) {
@@ -335,6 +337,21 @@ export function AdminApplicationQueue({ applications }: { applications: AppWithR
                       <p className="text-sm text-gray-800">{app.admittedYear ?? "—"}</p>
                     )}
                   </div>
+                </div>
+
+                {/* Major */}
+                <div>
+                  <label className="text-xs font-medium text-gray-500 block mb-1">Intended major</label>
+                  {isEditing ? (
+                    <input
+                      value={editData.major as string}
+                      onChange={(e) => setEditData({ ...editData, major: e.target.value })}
+                      placeholder="e.g. Computer Science"
+                      className="w-full rounded-md border border-gray-200 bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0851A0]"
+                    />
+                  ) : (
+                    <span className="text-sm text-gray-700">{app.major || <span className="text-xs text-gray-400">Not set</span>}</span>
+                  )}
                 </div>
 
                 {/* Tags */}

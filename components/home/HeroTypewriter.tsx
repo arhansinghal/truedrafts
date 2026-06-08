@@ -15,7 +15,7 @@ const ESSAYS: { uni: string; slug: string; prompt: string; sequence: Seg[] }[] =
       { kind: "pause", ms: 700 },
       { kind: "backspace", count: 13 },
       { kind: "pause", ms: 300 },
-      { kind: "type", text: "and thought my life was over." },
+      { kind: "type", text: " and thought my life was over." },
       { kind: "pause", ms: 500 },
       { kind: "newline" },
       { kind: "type", text: "Each time, I walked out of that exam room convinced I was the one person on Earth who didn't deserve to be there." },
@@ -108,6 +108,33 @@ function TDCursor({ blink }: { blink: boolean }) {
   );
 }
 
+// Spiral notepad binding across the top edge — the page hinges here when it folds.
+function SpiralBinding() {
+  return (
+    <div
+      className="pointer-events-none absolute left-1/2 z-30 flex -translate-x-1/2 gap-[13px]"
+      style={{ top: -8 }}
+      aria-hidden
+    >
+      {Array.from({ length: 16 }).map((_, i) => (
+        <span
+          key={i}
+          style={{
+            display: "block",
+            width: 7,
+            height: 18,
+            borderRadius: 5,
+            border: "2px solid #b8af98",
+            borderTopColor: "#8c8369",
+            background: "linear-gradient(180deg, #ffffff 0%, #ded7c4 100%)",
+            boxShadow: "0 1px 1.5px rgba(0,0,0,0.18)",
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
 function getTextOpacity(totalChars: number): number {
   if (totalChars <= 100) return 1.0;
   const extra = totalChars - 100;
@@ -133,6 +160,7 @@ export function HeroTypewriter() {
   }, []);
 
   const essay = ESSAYS[ei];
+  const nextEssay = ESSAYS[(ei + 1) % ESSAYS.length];
   const seq = essay.sequence;
   const seg = seq[si];
 
@@ -209,10 +237,15 @@ export function HeroTypewriter() {
   const totalChars = displayed.replace(/\n/g, "").length;
   const textOpacity = getTextOpacity(totalChars);
 
+  // Fold the page UP toward the viewer, hinged at the spiral binding (top edge),
+  // and fade it out as it lifts — so it peels up and reveals the next sheet
+  // beneath rather than flipping to a blank back and vanishing.
   const foldStyle: React.CSSProperties = {
-    transform: "rotateX(-180deg)",
-    transition: "transform 0.7s cubic-bezier(0.4,0,0.2,1)",
+    transform: "rotateX(-104deg)",
+    opacity: 0,
     transformOrigin: "top center",
+    transition: "transform 0.7s cubic-bezier(0.34,0,0.2,1), opacity 0.45s ease-in 0.28s",
+    boxShadow: "0 30px 40px -18px rgba(80,70,40,0.35)",
   };
 
   const paperStyle: React.CSSProperties = {
@@ -242,16 +275,30 @@ export function HeroTypewriter() {
           transform: "translateY(8px) rotate(-1deg)",
         }}
       />
-      {/* Paper stack layer 1 */}
+      {/* Paper stack layer 1 — a faint peek of the NEXT essay, revealed as the
+          current page folds up off the binding. */}
       <div
-        className="absolute inset-x-2 bottom-0 h-full rounded-3xl pointer-events-none"
+        className="absolute inset-x-2 bottom-0 h-full overflow-hidden rounded-3xl pointer-events-none"
         style={{
           zIndex: 1,
           background: "linear-gradient(160deg, #fdfcf8 0%, #faf8f2 60%, #f6f4ec 100%)",
           border: "1px solid rgba(200,188,155,0.4)",
           transform: "translateY(4px) rotate(0.5deg)",
         }}
-      />
+        aria-hidden
+      >
+        <div className="px-6 pt-5" style={{ opacity: 0.45 }}>
+          <div className="flex items-center gap-2">
+            <div className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-lg border border-amber-100 bg-white">
+              <Image src={`/uni_logos/${nextEssay.slug}.png`} alt="" width={24} height={24} className="object-contain" unoptimized />
+            </div>
+            <span className="text-xs font-semibold tracking-widest text-gray-400" style={{ fontVariant: "small-caps" }}>
+              {nextEssay.uni}
+            </span>
+          </div>
+          <p className="font-hand mt-5 text-sm italic leading-relaxed text-gray-400">{nextEssay.prompt}</p>
+        </div>
+      </div>
 
       {/* Active paper — the one that folds */}
       <div
@@ -351,6 +398,9 @@ export function HeroTypewriter() {
           aria-hidden
         />
       </div>
+
+      {/* Spiral binding across the top — the page hinges here as it folds up */}
+      <SpiralBinding />
     </div>
   );
 }

@@ -11,6 +11,7 @@ interface Props {
   applicationSlug: string;
   priceCents: number;
   isLoggedIn: boolean;
+  viewerRole?: string | null;
 }
 
 export function ApplicationPaywall({
@@ -18,6 +19,7 @@ export function ApplicationPaywall({
   applicationSlug,
   priceCents,
   isLoggedIn,
+  viewerRole,
 }: Props) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -41,6 +43,22 @@ export function ApplicationPaywall({
     } finally {
       setLoading(false);
     }
+  }
+
+  // Writer accounts can browse but not purchase. They never see this on their
+  // own application — that renders as already-unlocked (isPurchased).
+  if (viewerRole === "writer") {
+    return (
+      <div className="flex flex-col items-center gap-1.5 w-full text-center">
+        <div className="flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm font-medium text-gray-600">
+          <Lock className="h-4 w-4 text-gray-400" />
+          Writer accounts can&apos;t purchase
+        </div>
+        <p className="text-xs text-gray-400 max-w-xs">
+          You&apos;re signed in as a writer. Applications can only be unlocked from a reader account.
+        </p>
+      </div>
+    );
   }
 
   return (

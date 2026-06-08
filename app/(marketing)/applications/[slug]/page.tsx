@@ -61,8 +61,10 @@ export default async function ApplicationDetailPage({ params }: Props) {
   const [app, session] = await Promise.all([
     db.query.collegeApplications.findFirst({
       where: eq(collegeApplications.slug, slug),
-      // Need the full essay text here, but never the 1024-dim embedding vector.
-      columns: { insightBriefEmbedding: false },
+      // Need the full essay text, but never the 1024-dim embedding vector nor the
+      // base64 admission proof / screenshot (multi-MB, unused here, and the proof
+      // is the writer's private decision letter — keep it off public page loads).
+      columns: { insightBriefEmbedding: false, admissionProofUrl: false, commonAppScreenshotUrl: false },
       with: {
         university: true,
         writer: { columns: { id: true, name: true, email: true, username: true, verifiedAdmit: true, bio: true } },
@@ -151,6 +153,7 @@ export default async function ApplicationDetailPage({ params }: Props) {
     priceCents: app.priceCents,
     university: { name: app.university.name, slug: app.university.slug },
     admittedYear: app.admittedYear,
+    major: app.major,
     editorNote,
     themes,
     marginNotes,
@@ -158,6 +161,7 @@ export default async function ApplicationDetailPage({ params }: Props) {
     essays: gatedEssays,
     isPurchased,
     isLoggedIn: !!session,
+    viewerRole: session?.user.role ?? null,
     watermarkEmail: isPurchased && session ? session.user.email : null,
     writer: isPurchased
       ? { name: app.writer.name, bio: app.writer.bio, verifiedAdmit: !!app.writer.verifiedAdmit }

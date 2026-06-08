@@ -91,7 +91,7 @@ export default function HowItWorksPage() {
               {
                 step: "3",
                 title: "Earn on every sale",
-                desc: "When a student unlocks your application, you earn your share. Withdraw anytime once you hit $10.",
+                desc: "When a student unlocks your application, you earn your share. Withdraw anytime once you hit ₹1,000.",
               },
             ].map((item) => (
               <div key={item.step} className="rounded-xl border border-gray-200 bg-white p-5">

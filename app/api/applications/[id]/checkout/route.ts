@@ -20,6 +20,14 @@ export async function POST(
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  // Writer accounts can browse but not purchase — purchasing is a reader action.
+  if (session.user.role === "writer") {
+    return Response.json(
+      { error: "Writer accounts can't purchase. Use a reader account to buy applications." },
+      { status: 403 },
+    );
+  }
+
   const existing = await db.query.purchases.findFirst({
     where: and(
       eq(purchases.buyerId, session.user.id),

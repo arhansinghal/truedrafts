@@ -17,6 +17,7 @@ import {
   LogOut,
   Check,
   Lock,
+  Award,
 } from "lucide-react";
 import { PageHead, StatusPill } from "@/components/writer/Manuscript";
 
@@ -131,6 +132,7 @@ export default function WriterProfilePage() {
   const [bio, setBio] = useState("");
   const [country, setCountry] = useState("");
   const [activities, setActivities] = useState<Activity[]>([{ name: "", description: "" }]);
+  const [honors, setHonors] = useState<Activity[]>([]);
   const [applications, setApplications] = useState<ApplicationWithUni[]>([]);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -150,6 +152,12 @@ export default function WriterProfilePage() {
           } catch {
             setActivities([{ name: "", description: "" }]);
           }
+          try {
+            const h = JSON.parse(data.user.honors ?? "[]");
+            setHonors(Array.isArray(h) ? h : []);
+          } catch {
+            setHonors([]);
+          }
         }
         if (Array.isArray(data.applications)) setApplications(data.applications);
         setLoaded(true);
@@ -163,7 +171,7 @@ export default function WriterProfilePage() {
       const res = await fetch("/api/writer/settings", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, bio, country, activities }),
+        body: JSON.stringify({ name, bio, country, activities, honors }),
       });
       if (res.ok) {
         setSaved(true);
@@ -179,6 +187,13 @@ export default function WriterProfilePage() {
   function updateActivity(i: number, field: keyof Activity, value: string) {
     if (field === "description" && countWords(value) > 100) return;
     setActivities(activities.map((a, idx) => (idx === i ? { ...a, [field]: value } : a)));
+  }
+
+  const addHonor = () => honors.length < 10 && setHonors([...honors, { name: "", description: "" }]);
+  const removeHonor = (i: number) => setHonors(honors.filter((_, idx) => idx !== i));
+  function updateHonor(i: number, field: keyof Activity, value: string) {
+    if (field === "description" && countWords(value) > 100) return;
+    setHonors(honors.map((h, idx) => (idx === i ? { ...h, [field]: value } : h)));
   }
 
   if (!loaded) {
@@ -298,6 +313,57 @@ export default function WriterProfilePage() {
               })}
               {activities.length === 0 && (
                 <div className="py-5 text-center text-[13px]" style={{ color: "var(--ink-faint)" }}>No activities yet — add up to 10.</div>
+              )}
+            </div>
+          </Card>
+
+          {/* Honors & awards */}
+          <Card>
+            <SectionHead
+              icon={Award}
+              title="Honors & awards"
+              sub="Up to 10 · shown on your profile"
+              right={
+                <button
+                  onClick={addHonor}
+                  disabled={honors.length >= 10}
+                  className="inline-flex items-center gap-1.5 rounded-[10px] px-3 py-2 text-[13px] font-semibold disabled:opacity-50"
+                  style={{ background: "var(--surface)", border: "1px solid var(--line)", color: "var(--ink)" }}
+                >
+                  <Plus className="h-[15px] w-[15px]" /> Add
+                </button>
+              }
+            />
+            <div className="mt-[18px] flex flex-col gap-3">
+              {honors.map((h, i) => {
+                const wc = countWords(h.description);
+                return (
+                  <div key={i} className="rounded-[12px] p-3.5" style={{ border: "1px solid var(--line)", background: "var(--paper)" }}>
+                    <div className="mb-2.5 flex items-center gap-2.5">
+                      <span className="mono text-[12px] font-semibold" style={{ color: "var(--td-blue)" }}>{String(i + 1).padStart(2, "0")}</span>
+                      <input
+                        value={h.name}
+                        placeholder="Honor / award"
+                        onChange={(e) => updateHonor(i, "name", e.target.value)}
+                        style={{ ...FIELD, padding: "8px 11px", fontSize: 13.5 }}
+                      />
+                      <button onClick={() => removeHonor(i)} title="Remove" style={{ color: "var(--ink-faint)" }}>
+                        <Trash2 className="h-[15px] w-[15px]" />
+                      </button>
+                    </div>
+                    <textarea
+                      value={h.description}
+                      placeholder="Brief description (optional)…"
+                      onChange={(e) => updateHonor(i, "description", e.target.value)}
+                      rows={2}
+                      style={{ ...FIELD, fontSize: 13, padding: "9px 11px", resize: "vertical", lineHeight: 1.5 }}
+                    />
+                    <div className="mt-1 text-right text-[11.5px]" style={{ color: wc >= 95 ? "var(--amber)" : "var(--ink-faint)" }}>{wc}/100 words</div>
+                  </div>
+                );
+              })}
+              {honors.length === 0 && (
+                <div className="py-5 text-center text-[13px]" style={{ color: "var(--ink-faint)" }}>No honors yet — add up to 10.</div>
               )}
             </div>
           </Card>

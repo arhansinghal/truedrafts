@@ -39,6 +39,9 @@ export async function POST(req: Request) {
     commonAppScreenshotUrl,
     supplementals,
     numSupplementals,
+    major,
+    activities,
+    honors,
   } = body;
 
   if (!universityId || !admissionProofUrl) {
@@ -89,19 +92,23 @@ export async function POST(req: Request) {
       commonAppScreenshotUrl: commonAppScreenshotUrl ?? null,
       supplementals: JSON.stringify(supplementals ?? []),
       numSupplementals: numSupplementals ?? 0,
+      // Writer-provided intended major (application-level). The approve pipeline
+      // only AI-infers a major when this is empty (see approve/retag guards).
+      major: typeof major === "string" && major.trim() ? major.trim() : null,
       tags,
       status: "pending",
     })
     .returning();
 
-  // Stamp the bundle-inclusion consent timestamp on the writer's user row.
-  // This is the durable "yes I agreed" record — the wizard checkbox is a
-  // gating UX, this row is the evidence. Idempotent on subsequent submits
-  // (writer re-submitting another app just refreshes the timestamp).
-  await db
-    .update(users)
-    .set({ writersAgreedBundlesAt: new Date() })
-    .where(eq(users.id, session.user.id));
+  // Stamp the bundle-inclusion consent timestamp on the writer's user row, and
+  // persist their edited activities/honors (the writer's canonical profile data
+  // — overwrite is intentional; the wizard always seeds the list from the
+  // current profile so it can't clobber existing entries). Skip the profile
+  // overwrite when both lists are empty (e.g. the writer skipped step 4).
+  const userUpdates: Record<string, unknown> = { writersAgreedBundlesAt: new Date() };
+  if (Array.isArray(activities) && activities.length > 0) userUpdates.activities = JSON.stringify(activities);
+  if (Array.isArray(honors) && honors.length > 0) userUpdates.honors = JSON.stringify(honors);
+  await db.update(users).set(userUpdates).where(eq(users.id, session.user.id));
 
   // Confirmation that we received the submission (fire-and-forget).
   sendApplicationSubmittedEmail(session.user.id, application.id).catch(console.error);

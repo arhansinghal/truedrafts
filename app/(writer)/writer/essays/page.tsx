@@ -33,7 +33,7 @@ export default async function WriterApplicationsPage() {
       columns: {
         id: true, title: true, status: true, submittedCommonApp: true,
         numSupplementals: true, admittedYear: true, views: true, purchases: true,
-        rejectionNote: true, createdAt: true,
+        rejectionNote: true, createdAt: true, major: true,
       },
       with: { university: { columns: { name: true, slug: true } } },
       orderBy: [desc(collegeApplications.createdAt)],
@@ -148,6 +148,7 @@ export default async function WriterApplicationsPage() {
 
                     <div className="eyebrow">
                       {app.university.name} · {app.admittedYear} · {essayCount} essay{essayCount !== 1 ? "s" : ""}
+                      {app.major && ` · ${app.major}`}
                       {app.submittedCommonApp && " · incl. Common App"}
                     </div>
 

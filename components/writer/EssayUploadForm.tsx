@@ -20,7 +20,7 @@ const ESSAY_TYPES = [
 const CURRENT_YEAR = new Date().getFullYear();
 const YEARS = Array.from({ length: 6 }, (_, i) => CURRENT_YEAR - i);
 
-const SUGGESTED_PRICES = ["5", "8", "10", "15"];
+const SUGGESTED_PRICES = ["500", "800", "1000", "1500"];
 
 const WORD_LIMIT = 650;
 
@@ -155,7 +155,7 @@ export function EssayUploadForm({
     }
     const priceCents = Math.round(parseFloat(price) * 100);
     if (isNaN(priceCents) || priceCents < 100) {
-      setError("Minimum price is $1.00");
+      setError("Minimum price is ₹1");
       return;
     }
     setLoading(true);
@@ -241,11 +241,11 @@ export function EssayUploadForm({
         <div className="grid grid-cols-2 gap-4">
           <div>
             <Label htmlFor="price">
-              Your price (USD) <span className="text-red-500">*</span>
+              Your price (INR) <span className="text-red-500">*</span>
             </Label>
             <div className="relative mt-1">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">
-                $
+                ₹
               </span>
               <Input
                 id="price"
@@ -260,7 +260,7 @@ export function EssayUploadForm({
               />
             </div>
             <p className="mt-1 text-xs text-gray-400">
-              You earn ${earnings} per sale
+              You earn ₹{earnings} per sale
             </p>
           </div>
           <SelectField
@@ -521,11 +521,11 @@ export function EssayUploadForm({
             {/* Price input */}
             <div>
               <Label htmlFor="price">
-                Price (USD) <span className="text-red-500">*</span>
+                Price (INR) <span className="text-red-500">*</span>
               </Label>
               <div className="relative mt-1 max-w-[180px]">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">
-                  $
+                  ₹
                 </span>
                 <Input
                   id="price"
@@ -554,7 +554,7 @@ export function EssayUploadForm({
                         : "border-gray-200 bg-white text-gray-600 hover:border-gray-300",
                     ].join(" ")}
                   >
-                    ${p}
+                    ₹{p}
                   </button>
                 ))}
               </div>
@@ -563,7 +563,7 @@ export function EssayUploadForm({
               {price && !isNaN(parseFloat(price)) && parseFloat(price) > 0 && (
                 <p className="mt-2 text-sm font-medium text-[#0851A0]">
                   You&apos;ll earn{" "}
-                  <span className="font-bold">${earnings}</span> per sale
+                  <span className="font-bold">₹{earnings}</span> per sale
                 </p>
               )}
             </div>

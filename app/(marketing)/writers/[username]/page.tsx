@@ -97,6 +97,53 @@ export default async function WriterProfilePage({ params }: Props) {
         </div>
       </div>
 
+      {/* Activities & honors (read-only, from the writer's profile) */}
+      {(() => {
+        const parse = (s?: string | null): { name: string; description: string }[] => {
+          try {
+            const a = JSON.parse(s ?? "[]");
+            return Array.isArray(a) ? a.filter((x) => x?.name) : [];
+          } catch {
+            return [];
+          }
+        };
+        const acts = parse(writer.activities);
+        const hons = parse(writer.honors);
+        if (!acts.length && !hons.length) return null;
+        return (
+          <div className="mx-auto max-w-4xl px-4 pt-8">
+            <div className="grid gap-6 sm:grid-cols-2">
+              {acts.length > 0 && (
+                <section>
+                  <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500 mb-3">Activities</h2>
+                  <ul className="space-y-2.5">
+                    {acts.map((a, i) => (
+                      <li key={i} className="rounded-xl border border-gray-100 bg-white p-3.5">
+                        <p className="text-sm font-semibold text-gray-900">{a.name}</p>
+                        {a.description && <p className="mt-0.5 text-[13px] text-gray-500">{a.description}</p>}
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )}
+              {hons.length > 0 && (
+                <section>
+                  <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500 mb-3">Honors &amp; awards</h2>
+                  <ul className="space-y-2.5">
+                    {hons.map((h, i) => (
+                      <li key={i} className="rounded-xl border border-gray-100 bg-white p-3.5">
+                        <p className="text-sm font-semibold text-gray-900">{h.name}</p>
+                        {h.description && <p className="mt-0.5 text-[13px] text-gray-500">{h.description}</p>}
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Essays */}
       <div className="mx-auto max-w-4xl px-4 py-8">
         <h2 className="text-lg font-semibold text-gray-900 mb-5">Essays by {writer.name}</h2>

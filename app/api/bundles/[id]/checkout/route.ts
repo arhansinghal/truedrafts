@@ -24,6 +24,14 @@ export async function POST(
   const session = await auth.api.getSession({ headers: req.headers });
   if (!session) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
+  // Writer accounts can browse but not purchase.
+  if (session.user.role === "writer") {
+    return Response.json(
+      { error: "Writer accounts can't purchase. Use a reader account to buy bundles." },
+      { status: 403 },
+    );
+  }
+
   const bundle = await db.query.bundles.findFirst({ where: eq(bundles.id, id) });
   if (!bundle) return Response.json({ error: "Not found" }, { status: 404 });
 
