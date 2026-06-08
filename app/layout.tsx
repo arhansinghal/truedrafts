@@ -42,10 +42,9 @@ export const metadata: Metadata = {
   description:
     "Browse and purchase successful college application essays from students who got into Harvard, MIT, Stanford, and other top universities.",
   keywords: ["college essays", "college application", "Harvard essays", "Stanford essays", "MIT essays"],
-  icons: {
-    icon: "/td-logo.png",
-    apple: "/td-logo.png",
-  },
+  // Favicon / tab + Google icons come from the file conventions:
+  // app/favicon.ico (16/32/48), app/icon.png (512²), app/apple-icon.png (180²).
+  metadataBase: new URL("https://truedrafts.com"),
   openGraph: {
     type: "website",
     siteName: "TrueDrafts",
