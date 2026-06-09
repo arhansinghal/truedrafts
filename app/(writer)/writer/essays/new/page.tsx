@@ -65,6 +65,22 @@ export default async function NewEssayPage({
             desc="Enter your essays, prompts, and details step by step."
           />
         </div>
+        <div className="mt-8">
+          <h3 className="text-[13px] font-semibold" style={{ color: "var(--ink)" }}>How to obtain PDFs for upload</h3>
+          <div
+            className="mt-2.5 overflow-hidden rounded-[14px]"
+            style={{ border: "1px solid var(--line)", boxShadow: "var(--shadow-sm)" }}
+          >
+            <video
+              src="/upload_guide.mp4"
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="block w-full"
+            />
+          </div>
+        </div>
       </div>
     );
   }
