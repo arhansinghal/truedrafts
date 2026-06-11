@@ -42,3 +42,9 @@ next-env.d.ts
 
 # Claude Code local state
 .claude/
+
+# Playwright QA artifacts (local only)
+qa-playwright/
+
+# Playwright MCP scratch output (local only)
+.playwright-mcp/
