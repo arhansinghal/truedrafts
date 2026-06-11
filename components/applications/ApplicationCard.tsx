@@ -1,7 +1,7 @@
 import Link from "next/link";
-import Image from "next/image";
 import { ShoppingBag, Eye, FileText, User as UserIcon, Package } from "lucide-react";
 import { formatCents } from "@/lib/utils";
+import { UniLogo } from "@/components/ui/uni-logo";
 import type { Bundle, CollegeApplication, University, User } from "@/lib/db/schema";
 
 // Only the columns the card actually renders. Deliberately narrow: list queries
@@ -44,13 +44,11 @@ export function ApplicationCard({
         <div className="flex items-center justify-between gap-3 mb-3">
           <div className="flex items-center gap-2 min-w-0">
             <div className="w-8 h-8 rounded-lg border border-gray-100 flex items-center justify-center overflow-hidden shrink-0 bg-white">
-              <Image
-                src={`/uni_logos/${app.university.slug}.png`}
-                alt={app.university.name}
-                width={28}
-                height={28}
+              <UniLogo
+                slug={app.university.slug}
+                name={app.university.name}
+                size={28}
                 className="object-contain"
-                unoptimized
               />
             </div>
             <span className="text-xs font-medium text-gray-500 truncate">{app.university.name}</span>

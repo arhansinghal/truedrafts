@@ -1,8 +1,8 @@
 "use client";
 import { useState, useRef, useEffect, useCallback } from "react";
-import Image from "next/image";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import type { University } from "@/lib/db/schema";
+import { UniLogo } from "@/components/ui/uni-logo";
 
 const TRENDING_UNI_SLUGS = ["harvard", "stanford", "mit", "yale", "princeton"];
 const YEARS = [2026, 2025, 2024, 2023, 2022, 2021, 2020];
@@ -147,25 +147,18 @@ function GhostSearch({
 /* ── Pill chip ──────────────────────────────────────────────────────────── */
 function Pill({
   label,
-  logo,
+  logoSlug,
   onRemove,
 }: {
   label: string;
-  logo?: string;
+  logoSlug?: string;
   onRemove: () => void;
 }) {
   return (
     <span className="inline-flex items-center gap-1.5 bg-[#e8f1fa] text-[#0851A0] text-xs font-medium rounded-full px-2.5 py-1 border border-[#9dc3e6]/40">
-      {logo && (
+      {logoSlug && (
         <span className="w-4 h-4 rounded overflow-hidden bg-white border border-gray-100 flex items-center justify-center shrink-0">
-          <Image
-            src={logo}
-            alt=""
-            width={14}
-            height={14}
-            className="object-contain"
-            unoptimized
-          />
+          <UniLogo slug={logoSlug} name={label} size={14} className="object-contain" />
         </span>
       )}
       {label}
@@ -247,7 +240,7 @@ export function FilterSidebar({
 
   return (
     <div
-      className="w-64 shrink-0 sticky top-20 self-start max-h-[calc(100vh-6rem)] overflow-y-auto scrollbar-hide"
+      className="w-full md:w-64 md:shrink-0 md:sticky md:top-20 self-start md:max-h-[calc(100vh-6rem)] md:overflow-y-auto scrollbar-hide"
       style={{
         background: "rgba(255,255,255,0.78)",
         backdropFilter: "blur(20px)",
@@ -288,7 +281,7 @@ export function FilterSidebar({
           <div className="mb-2">
             <Pill
               label={currentUni.name}
-              logo={`/uni_logos/${currentUni.slug}.png`}
+              logoSlug={currentUni.slug}
               onRemove={() => navigate({ university: undefined, page: undefined })}
             />
           </div>
@@ -303,14 +296,7 @@ export function FilterSidebar({
           renderOption={(opt) => (
             <span className="flex items-center gap-2">
               <div className="w-5 h-5 rounded overflow-hidden bg-white border border-gray-100 flex items-center justify-center shrink-0">
-                <Image
-                  src={`/uni_logos/${opt.slug}.png`}
-                  alt={opt.name}
-                  width={16}
-                  height={16}
-                  className="object-contain"
-                  unoptimized
-                />
+                <UniLogo slug={opt.slug} name={opt.name} size={16} className="object-contain" />
               </div>
               {opt.name}
             </span>
@@ -331,13 +317,11 @@ export function FilterSidebar({
                   className="flex items-center gap-2 text-xs text-gray-500 hover:text-[#0851A0] transition-colors group text-left"
                 >
                   <div className="w-5 h-5 rounded overflow-hidden bg-white border border-gray-100 flex items-center justify-center shrink-0">
-                    <Image
-                      src={`/uni_logos/${u.slug}.png`}
-                      alt={u.name}
-                      width={14}
-                      height={14}
+                    <UniLogo
+                      slug={u.slug}
+                      name={u.name}
+                      size={14}
                       className="object-contain grayscale group-hover:grayscale-0 transition-all"
-                      unoptimized
                     />
                   </div>
                   {u.name}

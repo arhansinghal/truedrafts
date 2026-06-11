@@ -1,5 +1,5 @@
 import Link from "next/link";
-import Image from "next/image";
+import { UniLogo } from "@/components/ui/uni-logo";
 import { Suspense } from "react";
 import { db } from "@/lib/db";
 import { collegeApplications, universities } from "@/lib/db/schema";
@@ -347,13 +347,11 @@ export default async function ApplicationsPage({
           <div className="flex items-center gap-3">
             {selectedUni && (
               <div className="w-10 h-10 rounded-xl bg-white border border-gray-100 shadow-sm flex items-center justify-center shrink-0 overflow-hidden">
-                <Image
-                  src={`/uni_logos/${selectedUni.slug}.png`}
-                  alt={selectedUni.name}
-                  width={32}
-                  height={32}
+                <UniLogo
+                  slug={selectedUni.slug}
+                  name={selectedUni.name}
+                  size={32}
                   className="object-contain p-0.5"
-                  unoptimized
                 />
               </div>
             )}
@@ -400,7 +398,7 @@ export default async function ApplicationsPage({
 
       <BundleHeroStrip />
 
-      <div className="mx-auto max-w-7xl px-4 py-8 flex gap-8 items-start">
+      <div className="mx-auto max-w-7xl px-4 py-8 flex flex-col md:flex-row gap-8 items-start">
         <FilterSidebar
           universities={allUniversities}
           currentSort={sort === "relevance" ? "relevance" : sort}

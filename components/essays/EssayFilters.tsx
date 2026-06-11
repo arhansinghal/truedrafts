@@ -1,7 +1,7 @@
 "use client";
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import Image from "next/image";
+import { UniLogo } from "@/components/ui/uni-logo";
 import { essayTypeLabel } from "@/lib/utils";
 import type { University } from "@/lib/db/schema";
 import { ChevronDown, Search } from "lucide-react";
@@ -105,14 +105,7 @@ export function EssayFilters({
             title={uni.name}
           >
             <div className="w-4 h-4 rounded overflow-hidden shrink-0 flex items-center justify-center bg-white">
-              <Image
-                src={`/uni_logos/${uni.slug}.png`}
-                alt={uni.name}
-                width={16}
-                height={16}
-                className="object-contain"
-                unoptimized
-              />
+              <UniLogo slug={uni.slug} name={uni.name} size={16} className="object-contain" />
             </div>
             <span className="max-w-[80px] truncate">{uni.name}</span>
           </button>
