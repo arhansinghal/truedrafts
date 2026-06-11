@@ -28,6 +28,12 @@ export function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
+  // Render the auth skeleton until mounted so the server prerender and the first
+  // client paint are identical — the session can resolve before hydration commits,
+  // which otherwise produces a server(skeleton)→client(link) hydration mismatch.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
   useEffect(() => {
     function handler(e: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
@@ -78,7 +84,7 @@ export function Navbar() {
 
           {/* Auth */}
           <div className="flex items-center gap-2">
-            {isPending ? (
+            {!mounted || isPending ? (
               <div className="h-8 w-24 animate-pulse rounded-md bg-gray-200" />
             ) : user ? (
               <>
