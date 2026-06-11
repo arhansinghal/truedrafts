@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Mail, Wallet, Clock, ShieldCheck } from "lucide-react";
+import { Mail, Wallet, Clock } from "lucide-react";
 import { AcceptInviteButton } from "@/components/invite/AcceptInviteButton";
 
 export const metadata = {
@@ -16,13 +16,8 @@ const BENEFITS = [
   },
   {
     icon: Clock,
-    title: "Takes about 5 minutes",
+    title: "Takes less than 2 minutes",
     body: "Upload your Common App PDF — we read it and pre-fill everything for you.",
-  },
-  {
-    icon: ShieldCheck,
-    title: "You stay anonymous",
-    body: "Your name is never shown publicly. Verified admits only.",
   },
 ];
 
