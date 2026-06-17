@@ -5,6 +5,12 @@ import { eq, desc } from "drizzle-orm";
 import { generateSlug } from "@/lib/utils";
 import { generateEssayTags } from "@/lib/ai";
 import { sendApplicationSubmittedEmail } from "@/lib/email";
+import {
+  bodyExceedsLimit,
+  tooLong,
+  MAX_IMAGE_CHARS,
+  MAX_TEXT_CHARS,
+} from "@/lib/request-limits";
 
 export async function GET(req: Request) {
   const session = await auth.api.getSession({ headers: req.headers });
@@ -27,6 +33,10 @@ export async function POST(req: Request) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  if (bodyExceedsLimit(req)) {
+    return Response.json({ error: "Payload too large" }, { status: 413 });
+  }
+
   const body = await req.json();
   const {
     universityId,
@@ -46,6 +56,16 @@ export async function POST(req: Request) {
 
   if (!universityId || !admissionProofUrl) {
     return Response.json({ error: "Missing required fields" }, { status: 400 });
+  }
+
+  // Server-side size caps (the wizard caps client-side; a raw POST does not).
+  if (
+    tooLong(admissionProofUrl, MAX_IMAGE_CHARS) ||
+    tooLong(commonAppScreenshotUrl, MAX_IMAGE_CHARS) ||
+    tooLong(commonAppContent, MAX_TEXT_CHARS) ||
+    tooLong(JSON.stringify(supplementals ?? []), MAX_TEXT_CHARS)
+  ) {
+    return Response.json({ error: "A field exceeds the maximum allowed size" }, { status: 413 });
   }
 
   // Every supplemental essay must have both a prompt and content.

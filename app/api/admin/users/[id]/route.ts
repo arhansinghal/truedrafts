@@ -74,6 +74,12 @@ export async function DELETE(
     await tx.delete(accounts).where(eq(accounts.userId, id));
 
     // 2. De-list their published applications (buyers keep access).
+    //    NOTE: standalone `essays` are intentionally NOT archived here. The
+    //    essays detail page filters status="approved" in its query (unlike the
+    //    applications page, which carves out archived-for-purchasers), so
+    //    archiving an essay would lock out past buyers. The essays table is
+    //    currently empty (feature dormant). If standalone essays are revived,
+    //    archive them here AND add the purchaser carve-out to essays/[slug].
     await tx
       .update(collegeApplications)
       .set({ status: "archived" })

@@ -12,11 +12,13 @@ export async function POST(
 
   const body = await req.json();
   const score = Number(body.score);
-  const note = body.note ?? null;
-
-  if (score < 1 || score > 5) {
-    return Response.json({ error: "Score must be 1-5" }, { status: 400 });
+  // Reject NaN / non-integer / out-of-range. Number("x") is NaN and every
+  // comparison with NaN is false, so a bare `< 1 || > 5` would let NaN (and
+  // fractional scores like 4.999) through and poison avgRating.
+  if (!Number.isInteger(score) || score < 1 || score > 5) {
+    return Response.json({ error: "Score must be an integer 1-5" }, { status: 400 });
   }
+  const note = typeof body.note === "string" ? body.note.slice(0, 2000) : null;
 
   // Verify the user purchased this essay
   const purchase = await db.query.purchases.findFirst({

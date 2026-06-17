@@ -61,11 +61,23 @@ export const auth = betterAuth({
       role: {
         type: "string",
         defaultValue: "reader",
-        input: true,
+        // SECURITY: never accept a client-supplied role. With input:false the
+        // signup path silently falls back to "reader" (no error), and
+        // /api/auth/update-user rejects any role in the body — closing the
+        // self-promotion-to-admin hole. Roles are assigned server-side only:
+        // writer via /signup/writer + /api/user/role-switch (hardcoded), admin
+        // out-of-band. defaultValue must stay set so create uses it.
+        input: false,
       },
       username: {
         type: "string",
-        input: true,
+        // SECURITY: username is the unique, public /writers/<username> identifier.
+        // It is set only server-side (never via the validated profile routes,
+        // which use db.update directly — unaffected by this flag). input:false
+        // blocks claiming/impersonating an arbitrary username via the exposed
+        // /api/auth/update-user endpoint. A future "claim username" feature
+        // should go through a validated route (format + reserved-word + profanity).
+        input: false,
       },
       bio: {
         type: "string",

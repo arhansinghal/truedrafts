@@ -1,4 +1,5 @@
 import { parseVibeSearchQuery } from "@/lib/vibe-anthropic";
+import { rateLimit, clientIp } from "@/lib/ip-rate-limit";
 import {
   resolveUniversitySlug,
   resolveState,
@@ -62,22 +63,32 @@ function normalizeIntent(raw: Record<string, unknown>) {
   return intent;
 }
 
+// Public endpoint: cap the query length (bounds LLM token cost per call) and
+// rate-limit the LLM path per IP. Abusive callers still get working search via
+// the heuristic fallback below — they just don't get the (paid) LLM parse.
+const MAX_Q_LEN = 200;
+const LLM_PER_MIN = 15;
+
 export async function GET(req: Request) {
-  const q = new URL(req.url).searchParams.get("q")?.trim();
+  let q = new URL(req.url).searchParams.get("q")?.trim();
   if (!q) {
     return Response.json({ ...EMPTY_INTENT });
   }
+  if (q.length > MAX_Q_LEN) q = q.slice(0, MAX_Q_LEN);
 
-  // 1) LLM parse — primary. parseVibeSearchQuery routes to the model named by
-  //    VIBE_FAST_MODEL (DeepSeek by default) and returns null if its key is
-  //    missing, in which case we fall through to the heuristic parser below.
-  if (process.env.DEEPSEEK_API_KEY || process.env.ANTHROPIC_API_KEY) {
+  // 1) LLM parse — primary, but gated. parseVibeSearchQuery routes to the model
+  //    named by VIBE_FAST_MODEL (DeepSeek by default) and returns null if its
+  //    key is missing. We skip it when the caller is over its per-IP budget so a
+  //    scripted loop can't drive unbounded LLM spend; search still works via the
+  //    heuristic parser below.
+  const llmAllowed = rateLimit(`vibe:${clientIp(req)}`, LLM_PER_MIN, 60_000);
+  if (llmAllowed && (process.env.DEEPSEEK_API_KEY || process.env.ANTHROPIC_API_KEY)) {
     const intent = await parseVibeSearchQuery(q);
     if (intent) return Response.json(normalizeIntent(intent as unknown as Record<string, unknown>));
   }
 
-  // 2) Optional Python AI service
-  if (AI_SERVICE) {
+  // 2) Optional Python AI service (also external — skip it when throttled).
+  if (llmAllowed && AI_SERVICE) {
     try {
       const res = await fetch(`${AI_SERVICE}/parse?q=${encodeURIComponent(q)}`, {
         signal: AbortSignal.timeout(2000),

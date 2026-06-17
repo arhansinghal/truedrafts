@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { applicationDrafts } from "@/lib/db/schema";
 import { eq, desc } from "drizzle-orm";
+import { bodyExceedsLimit, MAX_BODY_BYTES } from "@/lib/request-limits";
 
 // GET /api/writer/drafts — list all drafts for this writer
 export async function GET(req: Request) {
@@ -25,8 +26,17 @@ export async function POST(req: Request) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  if (bodyExceedsLimit(req)) {
+    return Response.json({ error: "Payload too large" }, { status: 413 });
+  }
+
   const body = await req.json();
   const { universityId, universityName, universitySlug, currentStep, data } = body;
+
+  const serializedData = JSON.stringify(data ?? {});
+  if (serializedData.length > MAX_BODY_BYTES) {
+    return Response.json({ error: "Draft is too large" }, { status: 413 });
+  }
 
   const [draft] = await db
     .insert(applicationDrafts)
@@ -36,7 +46,7 @@ export async function POST(req: Request) {
       universityName: universityName || null,
       universitySlug: universitySlug || null,
       currentStep: currentStep ?? 1,
-      data: JSON.stringify(data ?? {}),
+      data: serializedData,
     })
     .returning();
 
