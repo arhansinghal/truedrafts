@@ -6,6 +6,8 @@ import {
   Architects_Daughter,
 } from "next/font/google";
 import "./globals.css";
+import { CopyGuard } from "@/components/CopyGuard";
+import { GoogleAnalytics } from "@next/third-parties/google";
 
 // "Manuscript" type system (from the redesign):
 //   sans  → Hanken Grotesk (UI)
@@ -65,8 +67,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       suppressHydrationWarning
     >
       <body className="font-sans" suppressHydrationWarning>
+        <CopyGuard />
         {children}
       </body>
+      {/* GA4 — loads gtag.js after hydration and tracks App Router client-side
+          navigations automatically (one tag, all pages). */}
+      <GoogleAnalytics gaId="G-BZYW1V4BG4" />
     </html>
   );
 }

@@ -188,7 +188,8 @@ export default async function EssayDetailPage({ params, searchParams }: Props) {
 
           {/* Essay content */}
           <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-            <div className={`font-serif text-base text-gray-800 leading-relaxed whitespace-pre-wrap select-none pointer-events-none${isPurchased ? " essay-protected" : ""}`}>
+            {/* Essay text is copy-protected at every stage — preview and full. */}
+            <div className="essay-protected font-serif text-base text-gray-800 leading-relaxed whitespace-pre-wrap">
               {isPurchased ? essay.fullContent : essay.previewContent}
             </div>
 

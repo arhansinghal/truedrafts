@@ -45,7 +45,7 @@ export function EssayCard({ essay }: { essay: EssayWithRelations }) {
         </h3>
 
         {/* Preview snippet */}
-        <p className="text-xs text-gray-400 line-clamp-2 mb-4 flex-1 leading-relaxed">
+        <p className="essay-protected text-xs text-gray-400 line-clamp-2 mb-4 flex-1 leading-relaxed">
           {essay.previewContent?.slice(0, 120)}...
         </p>
 

@@ -92,7 +92,7 @@ export function AdminEssayQueue({ essays }: { essays: EssayWithRelations[] }) {
               </p>
 
               {/* Preview */}
-              <p className="mt-3 text-sm text-gray-600 leading-relaxed line-clamp-3 font-serif">
+              <p className="essay-protected mt-3 text-sm text-gray-600 leading-relaxed line-clamp-3 font-serif">
                 {essay.previewContent}
               </p>
 

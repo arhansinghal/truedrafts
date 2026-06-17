@@ -419,7 +419,7 @@ export function AdminApplicationQueue({ applications }: { applications: AppWithR
                           rows={10}
                         />
                       ) : (
-                        <p className="text-sm text-gray-800 font-serif leading-relaxed whitespace-pre-wrap">{app.commonAppContent || "—"}</p>
+                        <p className="essay-protected text-sm text-gray-800 font-serif leading-relaxed whitespace-pre-wrap">{app.commonAppContent || "—"}</p>
                       )}
                     </div>
 
@@ -477,7 +477,7 @@ export function AdminApplicationQueue({ applications }: { applications: AppWithR
                               rows={6}
                             />
                           ) : (
-                            <p className="text-sm text-gray-800 font-serif leading-relaxed whitespace-pre-wrap">{s.content || "—"}</p>
+                            <p className="essay-protected text-sm text-gray-800 font-serif leading-relaxed whitespace-pre-wrap">{s.content || "—"}</p>
                           )}
                         </div>
                       </div>

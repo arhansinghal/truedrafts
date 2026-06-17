@@ -162,7 +162,7 @@ export function ApplicationReader({ data }: { data: ReaderData }) {
       <div ref={scroller} className="tdx-scroll relative flex-1 overflow-y-auto">
         <ChapterRail essays={essays} active={active} goChapter={goChapter} purchased={purchased} progress={progress} colW={colW} readMins={data.readMins} />
 
-        <div className="mx-auto px-7 pb-[120px]" style={{ maxWidth: colW, transition: "max-width .3s" }}>
+        <div className="essay-protected mx-auto px-7 pb-[120px]" style={{ maxWidth: colW, transition: "max-width .3s" }}>
           {showFront && <Frontispiece data={data} />}
           {showFront && data.editorNote && <EditorNote text={data.editorNote} />}
 

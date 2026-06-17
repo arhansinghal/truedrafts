@@ -82,7 +82,7 @@ export function TypewriterPreview({
 
       {/* Typewriter text */}
       <div className="px-6 pt-5 pb-0 min-h-[100px]">
-        <p className="font-serif text-sm leading-relaxed text-gray-800">
+        <p className="essay-protected font-serif text-sm leading-relaxed text-gray-800">
           {displayed}
           {!done && (
             <span className="inline-block w-[2px] h-[1em] bg-gray-700 animate-pulse ml-[1px] align-middle" />
