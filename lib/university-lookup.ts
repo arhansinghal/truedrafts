@@ -240,6 +240,14 @@ export const UNIVERSITY_ALIAS_MAP: Record<string, string> = {
   wellesley: "wellesley",
   "wellesley college": "wellesley",
   "wellesley blue": "wellesley",
+
+  // ── Caltech ──────────────────────────────────────────────────────────────────
+  caltech: "caltech",
+  "cal tech": "caltech",
+  "california institute of technology": "caltech",
+  "caltech university": "caltech",
+  beavers: "caltech",
+  techers: "caltech",
 };
 
 // ─── State / region maps ──────────────────────────────────────────────────────

@@ -172,6 +172,11 @@ const UNIVERSITIES: Array<{
     state: "MA", city: "Wellesley", region: "northeast", type: "liberal_arts",
     aliases: ["wellesley", "wellesley college"],
   },
+  {
+    name: "California Institute of Technology", slug: "caltech", country: "US", displayOrder: 31,
+    state: "CA", city: "Pasadena", region: "west", type: "private_research",
+    aliases: ["caltech", "cal tech", "california institute of technology", "beavers", "techers"],
+  },
 ];
 
 async function main() {

@@ -8,6 +8,7 @@ import Image from "next/image";
 const UNI_DATA: { slug: string; name: string }[] = [
   { slug: "harvard",        name: "Harvard" },
   { slug: "mit",            name: "MIT" },
+  { slug: "caltech",        name: "Caltech" },
   { slug: "stanford",       name: "Stanford" },
   { slug: "yale",           name: "Yale" },
   { slug: "princeton",      name: "Princeton" },

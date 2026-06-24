@@ -9,7 +9,7 @@ import { useState } from "react";
 // onError, so a fallback alone can't silence the console). Keep this in sync
 // when adding logo files.
 const LOGO_SLUGS = new Set([
-  "boston-college", "brown", "cmu", "columbia", "cornell", "dartmouth", "duke",
+  "boston-college", "brown", "caltech", "cmu", "columbia", "cornell", "dartmouth", "duke",
   "emory", "georgetown", "georgia-tech", "harvard", "jhu", "mit", "northwestern",
   "notre-dame", "nyu", "princeton", "purdue", "rice", "stanford", "tufts",
   "uc-berkeley", "uchicago", "uci", "ucla", "ucsb", "ucsd", "uiuc", "umich",
