@@ -67,13 +67,14 @@ export function ApplicationCard({
           <p className="text-[11px] text-gray-500 mb-2 line-clamp-1">{app.major}</p>
         )}
 
-        {/* Bundle membership pill — first matching bundle wins */}
+        {/* Bundle membership pill — first matching bundle wins. This is a
+            Server Component, so the pill must stay purely presentational: a DOM
+            event handler here (e.g. onClickCapture) is illegal in RSC and throws
+            at render, which previously 500'd every browse page that contained a
+            bundle member. Clicking the pill simply follows the card's link. */}
         {bundles && bundles.length > 0 && (
           <div className="mb-2">
-            <span
-              className="inline-flex items-center gap-1 rounded-full bg-blue-50 text-[#0851A0] text-[10px] font-semibold px-2 py-0.5 border border-blue-100"
-              onClickCapture={(e) => e.preventDefault()}
-            >
+            <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 text-[#0851A0] text-[10px] font-semibold px-2 py-0.5 border border-blue-100">
               <Package className="h-2.5 w-2.5" />
               Part of: {bundles[0].title}
               {bundles.length > 1 && ` +${bundles.length - 1}`}

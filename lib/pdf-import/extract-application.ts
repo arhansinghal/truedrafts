@@ -6,7 +6,10 @@
 // same prompt as plain text.
 
 import Anthropic from "@anthropic-ai/sdk";
-import { extractFromPdf } from "@/lib/studio/extract";
+// unpdf-only PDF text extraction. Importing from lib/studio/extract (the web
+// scraper) would drag jsdom + turndown into this route's serverless bundle,
+// whose module-load was 500'ing the route on Vercel. See lib/pdf-import/pdf-text.
+import { extractFromPdf } from "@/lib/pdf-import/pdf-text";
 import { COMMON_APP_PROMPTS } from "@/lib/common-app";
 import type {
   ExtractionResult,

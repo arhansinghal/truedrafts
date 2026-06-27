@@ -246,6 +246,7 @@ export default async function ApplicationsPage({
 
   let rows: AppWithRelations[];
   let totalRanked: number | null = null;
+  let hasMoreAfterPage = false;
 
   if (useRelevance) {
     const pool = await db.query.collegeApplications.findMany({
@@ -281,7 +282,11 @@ export default async function ApplicationsPage({
     );
     rows = sorted.slice(offset, offset + pageSize);
   } else {
-    rows = await db.query.collegeApplications.findMany({
+    // Fetch one extra row to know whether a *next* page actually exists, rather
+    // than inferring it from `rows.length === pageSize` (which falsely shows a
+    // "Next →" leading to an empty page whenever the total is an exact multiple
+    // of pageSize, e.g. 36 results → page 2 wrongly offered a page 3).
+    const fetched = await db.query.collegeApplications.findMany({
       where: and(...whereConditions),
       columns: CARD_COLUMNS,
       with: {
@@ -291,9 +296,11 @@ export default async function ApplicationsPage({
         },
       },
       orderBy: [orderByColumn],
-      limit: pageSize,
+      limit: pageSize + 1,
       offset,
     });
+    hasMoreAfterPage = fetched.length > pageSize;
+    rows = fetched.slice(0, pageSize);
   }
 
   const selectedUni = uniSlug
@@ -321,7 +328,7 @@ export default async function ApplicationsPage({
 
   const hasNextPage = useRelevance
     ? totalRanked !== null && offset + pageSize < totalRanked
-    : rows.length === pageSize;
+    : hasMoreAfterPage;
 
   // Pre-resolve bundle membership for all visible cards in one pass to avoid
   // an N+1 of rule resolution from inside ApplicationCard.
