@@ -254,7 +254,6 @@ export function AdminApplicationQueue({ applications }: { applications: AppWithR
                   width={32}
                   height={32}
                   className="object-contain"
-                  unoptimized
                 />
               </div>
 

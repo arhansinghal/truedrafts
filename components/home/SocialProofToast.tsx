@@ -66,7 +66,6 @@ export function SocialProofToast() {
             width={28}
             height={28}
             className="object-contain p-0.5"
-            unoptimized
           />
         </div>
         <div className="min-w-0">

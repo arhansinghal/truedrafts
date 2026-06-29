@@ -16,7 +16,7 @@ export default function SubmittedPage() {
             <CheckCircle className="w-10 h-10 text-[#0851A0]" />
           </div>
           <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-white border-2 border-[#e8f1fa] flex items-center justify-center">
-            <Image src="/TD_logo.png" alt="TrueDrafts" width={18} height={18} className="object-contain" unoptimized />
+            <Image src="/TD_logo.png" alt="TrueDrafts" width={18} height={18} className="object-contain" />
           </div>
         </div>
       </div>

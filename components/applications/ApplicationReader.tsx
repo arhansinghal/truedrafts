@@ -57,7 +57,7 @@ function UniLogo({ slug, name, size = 30, radius = 8 }: { slug: string; name: st
       className="flex shrink-0 items-center justify-center overflow-hidden"
       style={{ width: size, height: size, borderRadius: radius, background: "#fff", border: "1px solid var(--line)" }}
     >
-      <Image src={`/uni_logos/${slug}.png`} alt={name} width={size} height={size} className="h-[76%] w-[76%] object-contain" unoptimized />
+      <Image src={`/uni_logos/${slug}.png`} alt={name} width={size} height={size} className="h-[76%] w-[76%] object-contain" />
     </div>
   );
 }

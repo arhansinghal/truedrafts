@@ -73,7 +73,6 @@ export function UniLogo({
       height={size}
       className={className}
       onError={() => setFailed(true)}
-      unoptimized
     />
   );
 }

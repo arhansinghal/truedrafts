@@ -8,7 +8,7 @@ export function Footer() {
         <div className="flex flex-col items-start gap-8 md:flex-row md:justify-between">
           <div>
             <div className="mb-3">
-              <Image src="/td_text_logo.png" alt="TrueDrafts" width={140} height={42} className="object-contain" unoptimized />
+              <Image src="/td_text_logo.png" alt="TrueDrafts" width={140} height={42} className="object-contain" />
             </div>
             <p className="text-sm text-gray-500 max-w-xs">
               Real essays. Real admits. Real insight.

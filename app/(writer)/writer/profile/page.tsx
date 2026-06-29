@@ -381,7 +381,7 @@ export default function WriterProfilePage() {
                 applications.map((app) => (
                   <div key={app.id} className="flex items-center gap-[11px]">
                     <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-[9px]" style={{ background: "#fff", border: "1px solid var(--line)" }}>
-                      <Image src={`/uni_logos/${app.university.slug}.png`} alt={app.university.name} width={28} height={28} className="h-[76%] w-[76%] object-contain" unoptimized />
+                      <Image src={`/uni_logos/${app.university.slug}.png`} alt={app.university.name} width={28} height={28} className="h-[76%] w-[76%] object-contain" />
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-[13.5px] font-semibold" style={{ color: "var(--ink)" }}>{app.university.name}</div>

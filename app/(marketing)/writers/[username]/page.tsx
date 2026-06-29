@@ -11,6 +11,12 @@ interface Props {
   params: Promise<{ username: string }>;
 }
 
+// Public writer profile — no per-user/session data, so serve it as ISR: the
+// first request renders at the origin, subsequent requests are served from the
+// edge CDN (Mumbai for IN traffic) and revalidated at most every 5 min. This
+// turns a ~1s+ origin round-trip into a fast edge hit.
+export const revalidate = 300;
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { username } = await params;
   const writer = await db.query.users.findFirst({ where: eq(users.username, username) });

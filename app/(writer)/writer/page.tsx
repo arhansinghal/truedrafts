@@ -217,7 +217,7 @@ function AppRow({
         className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-[10px]"
         style={{ background: "#fff", border: "1px solid var(--line)" }}
       >
-        <Image src={`/uni_logos/${app.university.slug}.png`} alt={app.university.name} width={36} height={36} className="h-[76%] w-[76%] object-contain" unoptimized />
+        <Image src={`/uni_logos/${app.university.slug}.png`} alt={app.university.name} width={36} height={36} className="h-[76%] w-[76%] object-contain" />
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-[9px]">

@@ -122,7 +122,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       {/* Header */}
       <header className="relative z-10 px-8 py-5">
         <Link href="/" className="inline-flex items-center gap-2.5 group">
-          <Image src="/TD_logo.png" alt="TrueDrafts" width={36} height={36} className="object-contain" unoptimized />
+          <Image src="/TD_logo.png" alt="TrueDrafts" width={36} height={36} className="object-contain" />
           <span className="font-serif text-xl font-bold text-[#0851A0] tracking-tight">TrueDrafts</span>
         </Link>
       </header>

@@ -26,7 +26,7 @@ export function BuyersList({ buyers }: { buyers: BuyerEntry[] }) {
           {/* Uni logo */}
           <div className="h-9 w-9 rounded-lg border border-gray-100 flex items-center justify-center overflow-hidden bg-white shrink-0">
             {b.uniSlug ? (
-              <Image src={`/uni_logos/${b.uniSlug}.png`} alt={b.uniName} width={28} height={28} className="object-contain" unoptimized />
+              <Image src={`/uni_logos/${b.uniSlug}.png`} alt={b.uniName} width={28} height={28} className="object-contain" />
             ) : (
               <div className="h-9 w-9 rounded-lg bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-500">{b.uniName[0]}</div>
             )}

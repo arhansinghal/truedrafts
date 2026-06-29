@@ -535,7 +535,7 @@ export function ApplicationUploadWizard({
           {selectedUni && (
             <div className="flex items-center gap-3 p-3 rounded-xl bg-[#e8f1fa] border border-[#0851A0]/10">
               <div className="w-10 h-10 rounded-xl bg-white border border-gray-100 flex items-center justify-center shrink-0 overflow-hidden">
-                <Image src={`/uni_logos/${selectedUni.slug}.png`} alt={selectedUni.name} width={32} height={32} className="object-contain p-0.5" unoptimized />
+                <Image src={`/uni_logos/${selectedUni.slug}.png`} alt={selectedUni.name} width={32} height={32} className="object-contain p-0.5" />
               </div>
               <span className="text-sm font-semibold text-[#0851A0]">{selectedUni.name}</span>
             </div>
@@ -728,7 +728,7 @@ export function ApplicationUploadWizard({
                     style={{ background: "#fff", border: "1px solid var(--line)" }}
                   >
                     {selectedUni ? (
-                      <Image src={`/uni_logos/${selectedUni.slug}.png`} alt={selectedUni.name} width={34} height={34} className="h-[76%] w-[76%] object-contain" unoptimized />
+                      <Image src={`/uni_logos/${selectedUni.slug}.png`} alt={selectedUni.name} width={34} height={34} className="h-[76%] w-[76%] object-contain" />
                     ) : (
                       <span style={{ width: 42, height: 42, borderRadius: 10, background: "var(--paper-2)" }} />
                     )}

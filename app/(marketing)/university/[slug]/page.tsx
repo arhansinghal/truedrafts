@@ -76,7 +76,6 @@ export default async function UniversityPage({ params, searchParams }: Props) {
               width={52}
               height={52}
               className="object-contain p-1"
-              unoptimized
             />
           </div>
           <div>

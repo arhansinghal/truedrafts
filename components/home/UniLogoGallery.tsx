@@ -63,7 +63,6 @@ function LogoItem({ slug, name }: { slug: string; name: string }) {
           width={80}
           height={80}
           className="object-contain p-1 grayscale opacity-45 transition-all duration-500 ease-out group-hover:grayscale-0 group-hover:opacity-100"
-          unoptimized
         />
       </div>
       <span className="text-xs text-gray-400 group-hover:text-gray-700 transition-colors duration-300 text-center max-w-[96px] truncate leading-tight font-medium">

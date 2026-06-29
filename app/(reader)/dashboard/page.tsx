@@ -65,7 +65,7 @@ export default async function DashboardPage() {
               >
                 {/* University logo */}
                 <div className="h-9 w-9 rounded-lg bg-white border border-gray-100 shadow-sm flex items-center justify-center shrink-0 overflow-hidden">
-                  <Image src={`/uni_logos/${app.university.slug}.png`} alt={app.university.name} width={30} height={30} className="object-contain p-0.5" unoptimized />
+                  <Image src={`/uni_logos/${app.university.slug}.png`} alt={app.university.name} width={30} height={30} className="object-contain p-0.5" />
                 </div>
 
                 {/* Details */}

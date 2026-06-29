@@ -75,7 +75,6 @@ export default async function StudioDashboard() {
                           width={28}
                           height={28}
                           className="object-contain"
-                          unoptimized
                         />
                       </div>
                       <div className="flex-1 min-w-0">

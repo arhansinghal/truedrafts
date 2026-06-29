@@ -222,7 +222,6 @@ export default async function BundleDetailPage({ params, searchParams }: Props) 
                         width={36}
                         height={36}
                         className="object-contain"
-                        unoptimized
                       />
                     </div>
                     <div className="flex-1 min-w-0">

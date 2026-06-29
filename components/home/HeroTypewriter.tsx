@@ -101,7 +101,6 @@ function TDCursor({ blink }: { blink: boolean }) {
         width={12}
         height={12}
         className="object-contain"
-        unoptimized
         aria-hidden
       />
     </span>
@@ -290,7 +289,7 @@ export function HeroTypewriter() {
         <div className="px-6 pt-5" style={{ opacity: 0.45 }}>
           <div className="flex items-center gap-2">
             <div className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-lg border border-amber-100 bg-white">
-              <Image src={`/uni_logos/${nextEssay.slug}.png`} alt="" width={24} height={24} className="object-contain" unoptimized />
+              <Image src={`/uni_logos/${nextEssay.slug}.png`} alt="" width={24} height={24} className="object-contain" />
             </div>
             <span className="text-xs font-semibold tracking-widest text-gray-400" style={{ fontVariant: "small-caps" }}>
               {nextEssay.uni}
@@ -321,7 +320,6 @@ export function HeroTypewriter() {
                   width={24}
                   height={24}
                   className="object-contain"
-                  unoptimized
                 />
               </div>
               <span
