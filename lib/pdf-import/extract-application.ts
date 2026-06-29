@@ -40,7 +40,11 @@ export async function extractApplication(files: PdfInput[]): Promise<ExtractionR
   let raw: string | null;
   try {
     raw = await callWithDocuments(files);
-  } catch {
+  } catch (err) {
+    // A timeout/budget abort must NOT trigger the fallback — the fallback is a
+    // second multi-second model call that would only push us further past the
+    // serverless function's wall-clock limit. Surface it cleanly instead.
+    if (err instanceof ExtractionError) throw err;
     // Native document path failed (model/API rejection) — fall back to unpdf.
     raw = await callWithExtractedText(files);
   }
@@ -109,6 +113,42 @@ Rules:
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY ?? "" });
 
+// Hard wall-clock budget for a single model call. The route runs on a 60s
+// serverless function; a verbatim copy of a long, multi-supplemental
+// application can approach max_tokens (~30s of generation) — if it ever runs
+// long we abort with a clear message rather than letting the platform kill the
+// whole function and surface a generic 500.
+const CALL_TIMEOUT_MS = 50_000;
+
+// Streamed model call. Streaming keeps the connection active for the full
+// generation (a 30s non-streaming POST can be severed by an intermediate
+// timeout) and lets us enforce an explicit abort budget.
+async function runModel(
+  messages: Anthropic.MessageParam[],
+): Promise<string | null> {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), CALL_TIMEOUT_MS);
+  try {
+    const stream = anthropic.messages.stream(
+      { model: MODEL, max_tokens: MAX_TOKENS, temperature: 0, system: SYSTEM, messages },
+      { signal: ctrl.signal },
+    );
+    const msg = await stream.finalMessage();
+    const block = msg.content[0];
+    return block?.type === "text" ? block.text : null;
+  } catch (err) {
+    if (ctrl.signal.aborted) {
+      throw new ExtractionError(
+        "Reading the application took too long. Try uploading a single PDF (and put any supplemental essays in a separate, smaller second PDF).",
+        504,
+      );
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function callWithDocuments(files: PdfInput[]): Promise<string | null> {
   const content: Anthropic.ContentBlockParam[] = [];
   for (const f of files) {
@@ -123,16 +163,7 @@ async function callWithDocuments(files: PdfInput[]): Promise<string | null> {
     });
   }
   content.push({ type: "text", text: instructionText() });
-
-  const msg = await anthropic.messages.create({
-    model: MODEL,
-    max_tokens: MAX_TOKENS,
-    temperature: 0,
-    system: SYSTEM,
-    messages: [{ role: "user", content }],
-  });
-  const block = msg.content[0];
-  return block?.type === "text" ? block.text : null;
+  return runModel([{ role: "user", content }]);
 }
 
 async function callWithExtractedText(files: PdfInput[]): Promise<string | null> {
@@ -149,15 +180,7 @@ async function callWithExtractedText(files: PdfInput[]): Promise<string | null> 
     );
   }
 
-  const msg = await anthropic.messages.create({
-    model: MODEL,
-    max_tokens: MAX_TOKENS,
-    temperature: 0,
-    system: SYSTEM,
-    messages: [{ role: "user", content: `${instructionText()}\n\n${combined}` }],
-  });
-  const block = msg.content[0];
-  return block?.type === "text" ? block.text : null;
+  return runModel([{ role: "user", content: `${instructionText()}\n\n${combined}` }]);
 }
 
 // ─── Parsing & normalization ──────────────────────────────────────────────────

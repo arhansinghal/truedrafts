@@ -99,6 +99,11 @@ export async function POST(req: Request) {
     return Response.json({ error: "Extraction failed unexpectedly." }, { status: 500 });
   }
 
+  // Everything from here down (DB reads + the draft insert) was previously
+  // unguarded: a throw became an unhandled 500 that the client surfaced as the
+  // generic "Extraction failed." with no detail. Wrap it so failures return a
+  // real, logged JSON error instead.
+  try {
   // Match university + load the writer's current profile lists.
   const [allUnis, writer] = await Promise.all([
     db
@@ -161,4 +166,11 @@ export async function POST(req: Request) {
     .returning({ id: applicationDrafts.id });
 
   return Response.json({ draftId: draft.id }, { status: 201 });
+  } catch (err) {
+    console.error("[applications/extract] post-extraction failure", err);
+    return Response.json(
+      { error: "Extraction succeeded but saving the draft failed. Please try again." },
+      { status: 500 },
+    );
+  }
 }
