@@ -97,7 +97,7 @@ export function PdfImportPanel() {
         style={{ background: "var(--td-blue)" }}
       >
         {extracting ? (
-          <><Loader2 className="h-4 w-4 animate-spin" /> Reading your application… (~30s)</>
+          <><Loader2 className="h-4 w-4 animate-spin" /> Reading your application… (up to a minute or two)</>
         ) : (
           "Extract & review →"
         )}

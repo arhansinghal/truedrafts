@@ -13,7 +13,11 @@ import {
 } from "@/lib/pdf-import/extract-application";
 
 export const runtime = "nodejs"; // unpdf fallback cannot run on edge
-export const maxDuration = 60; // PDF + large extraction response is slow
+// A full application (Common App essay + several supplementals copied verbatim
+// across 1-2 PDFs) genuinely takes ~50-70s for the model — at 60s the function
+// was hitting a 504 mid-generation. Fluid compute is enabled, so give real
+// headroom (well above the per-call abort budget in lib/pdf-import/extract).
+export const maxDuration = 300; // PDF + large verbatim extraction is slow
 
 const MAX_BYTES = 10 * 1024 * 1024; // 10MB
 const MAX_PDFS = 2;

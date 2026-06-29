@@ -113,12 +113,12 @@ Rules:
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY ?? "" });
 
-// Hard wall-clock budget for a single model call. The route runs on a 60s
-// serverless function; a verbatim copy of a long, multi-supplemental
-// application can approach max_tokens (~30s of generation) — if it ever runs
-// long we abort with a clear message rather than letting the platform kill the
-// whole function and surface a generic 500.
-const CALL_TIMEOUT_MS = 50_000;
+// Hard wall-clock budget for a single model call. The route's function allows
+// maxDuration=300s; a verbatim copy of a long, multi-supplemental application
+// realistically takes ~50-70s. We give each call a generous 120s and only then
+// abort with a clear "too long, split your PDF" message — well under the
+// function ceiling so the platform never hard-kills us into a generic 500.
+const CALL_TIMEOUT_MS = 120_000;
 
 // Streamed model call. Streaming keeps the connection active for the full
 // generation (a 30s non-streaming POST can be severed by an intermediate
