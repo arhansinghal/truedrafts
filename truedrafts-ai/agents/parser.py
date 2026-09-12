@@ -48,8 +48,8 @@ async def parse_search_intent(query: str) -> dict:
       { tones, themes, target_uni, semantic_keywords }
     Falls back to minimal intent if model fails.
     """
-    client = _client()
     try:
+        client = _client()
         resp = await client.chat.completions.create(
             model=PARSER_MODEL,
             messages=[
