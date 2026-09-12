@@ -24,11 +24,12 @@ export async function GET(req: Request) {
   }
 
   const secret = process.env.CRON_SECRET;
-  if (secret) {
-    const auth = req.headers.get("authorization") ?? "";
-    if (auth !== `Bearer ${secret}`) {
-      return Response.json({ error: "Unauthorized" }, { status: 401 });
-    }
+  if (!secret) {
+    return Response.json({ error: "CRON_SECRET not configured" }, { status: 500 });
+  }
+  const auth = req.headers.get("authorization") ?? "";
+  if (auth !== `Bearer ${secret}`) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const cutoff = new Date(Date.now() - REFRESH_DAYS * 24 * 60 * 60 * 1000);
