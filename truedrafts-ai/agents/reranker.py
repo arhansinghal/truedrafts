@@ -78,11 +78,19 @@ async def score_relevance(intent: dict, briefs: list[dict]) -> list[dict]:
     Returns:
         list of { id, score, reason } sorted by score descending
     """
-    client = _client()
+    scoreable = [item for item in briefs if item.get("brief")]
+    if not scoreable:
+        return []
+    try:
+        client = _client()
+    except Exception:
+        return [
+            {"id": item["id"], "score": 0, "reason": "scoring failed"}
+            for item in scoreable
+        ]
     tasks = [
         _score_one(client, item["id"], intent, item["brief"])
-        for item in briefs
-        if item.get("brief")
+        for item in scoreable
     ]
     scores = await asyncio.gather(*tasks)
     return sorted(scores, key=lambda x: x["score"], reverse=True)
