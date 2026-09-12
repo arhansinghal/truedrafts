@@ -228,7 +228,20 @@ async function handleRefund(evt: WebhookEvent): Promise<Response> {
   const bundle = await db.query.bundlePurchases.findFirst({
     where: eq(bundlePurchases.razorpayOrderId, orderId),
   });
-  if (!bundle) return new Response("ok", { status: 200 });
+  if (!bundle) {
+    // Razorpay knows this payment (we just resolved its order), but no local
+    // purchase or bundle row exists yet — the refund raced ahead of
+    // payment.captured / verify-payment. Acking here would discard the refund
+    // permanently and the later grant would hand out a completed entitlement
+    // plus writer earnings for money that was returned. Ask for redelivery
+    // instead; by the next attempt the purchase row will exist and the normal
+    // reversal path runs.
+    console.error(
+      "Razorpay webhook: refund for payment with no local purchase yet — requesting retry",
+      { paymentId: r.payment_id, orderId },
+    );
+    return new Response("purchase not found yet", { status: 503 });
+  }
 
   return reverseBundle(bundle.id);
 }
