@@ -53,8 +53,8 @@ async def generate_application_brief(essay_text: str, activities: str = "") -> d
     if activities:
         user_content += f"\n\nACTIVITIES / PROFILE:\n{activities[:1000]}"
 
-    client = _client()
     try:
+        client = _client()
         resp = await client.chat.completions.create(
             model=INSIGHTS_MODEL,
             messages=[
