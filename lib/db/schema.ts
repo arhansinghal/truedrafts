@@ -429,7 +429,10 @@ export const emailLogs = pgTable("email_logs", {
   recipientEmail: text("recipient_email").notNull(),
   subject: text("subject").notNull(),
   type: text("type").notNull(), // forgot_password | verify_email | purchase_buyer | purchase_seller | app_approved | app_rejected
-  status: text("status").notNull().default("sent"), // sent | failed
+  // pending = slot reserved by the rate limiter, provider call still in flight.
+  // A row is inserted as "pending" before the send and updated to sent/failed
+  // after, so a reserved attempt always counts against the rate-limit window.
+  status: text("status").notNull().default("sent"), // pending | sent | failed
   resendId: text("resend_id"),
   metadata: text("metadata").default("{}"),
   error: text("error"),
