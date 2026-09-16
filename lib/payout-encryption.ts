@@ -42,26 +42,4 @@ export function encryptPayoutField(plain: string): string {
   return `${iv.toString("hex")}.${enc.toString("hex")}.${tag.toString("hex")}`;
 }
 
-export function decryptPayoutField(blob: string): string {
-  const parts = blob.split(".");
-  if (parts.length !== 3) {
-    throw new Error("decryptPayoutField: malformed ciphertext blob");
-  }
-  const [ivHex, encHex, tagHex] = parts;
-  const key = getKey();
-  const decipher = createDecipheriv(ALGO, key, Buffer.from(ivHex, "hex"));
-  decipher.setAuthTag(Buffer.from(tagHex, "hex"));
-  const dec = Buffer.concat([
-    decipher.update(Buffer.from(encHex, "hex")),
-    decipher.final(),
-  ]);
-  return dec.toString("utf8");
-}
 
-// Constant-time string compare for audit-log lookups etc.
-export function safeStringEqual(a: string, b: string): boolean {
-  const aBuf = Buffer.from(a);
-  const bBuf = Buffer.from(b);
-  if (aBuf.length !== bBuf.length) return false;
-  return timingSafeEqual(aBuf, bBuf);
-}
