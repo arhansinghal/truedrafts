@@ -23,7 +23,9 @@ vi.mock("drizzle-orm", () => ({
 
 import { PATCH } from "@/app/api/writer/settings/route";
 
-const MAX_BODY_BYTES = 64 * 1024;
+// The real cap, imported rather than restated, so this test tracks the route
+// instead of silently drifting from it.
+import { MAX_JSON_BODY_BYTES as MAX_BODY_BYTES } from "@/lib/request-limits";
 
 function streamOf(text: string, chunkSize = 16 * 1024): ReadableStream<Uint8Array> {
   const bytes = new TextEncoder().encode(text);
@@ -69,6 +71,26 @@ describe("PATCH /api/writer/settings body limit", () => {
     await expect(res.json()).resolves.toEqual({ error: "Payload too large" });
     // The oversized body must never reach the database layer.
     expect(mocks.update).not.toHaveBeenCalled();
+    expect(mocks.set).not.toHaveBeenCalled();
+  });
+
+  // A JSON body is not necessarily an object. Before these guards the handler
+  // reached straight for body.name?.trim(), which throws on both of these —
+  // `null.name` and `(123).trim is not a function` — and an unhandled throw in
+  // a route handler is a 500, not a 4xx.
+  it("does not crash on a JSON null body", async () => {
+    const res = await PATCH(patchRequest("null"));
+
+    expect(res.status).toBe(400);
+    await expect(res.json()).resolves.toEqual({ error: "Nothing to update" });
+    expect(mocks.set).not.toHaveBeenCalled();
+  });
+
+  it("ignores non-string fields instead of crashing on them", async () => {
+    const res = await PATCH(patchRequest(JSON.stringify({ name: 123, bio: { x: 1 } })));
+
+    expect(res.status).toBe(400);
+    await expect(res.json()).resolves.toEqual({ error: "Nothing to update" });
     expect(mocks.set).not.toHaveBeenCalled();
   });
 
