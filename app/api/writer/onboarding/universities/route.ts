@@ -16,16 +16,34 @@ export async function POST(req: Request) {
   const uniIds = universities.map((u) => u.uniId);
 
   // Record the writer's admits (drives their profile / verified admits).
-  await db.delete(writerUniversities).where(eq(writerUniversities.writerId, writerId));
-  await db.insert(writerUniversities).values(
-    universities.map(({ uniId, admittedYear }) => ({
+  // Validate/convert the years *before* deleting the existing rows: a bad year would
+  // make the replacement insert fail, leaving the writer with no admits at all.
+  const admitRows: {
+    writerId: string;
+    universityId: string;
+    admittedYear: number | null;
+    applicationProgress: number;
+    verifiedAdmit: boolean;
+  }[] = [];
+  for (const { uniId, admittedYear } of universities) {
+    let year: number | null = null;
+    if (admittedYear) {
+      year = parseInt(admittedYear);
+      if (!Number.isInteger(year)) {
+        return Response.json({ error: "Invalid admittedYear" }, { status: 400 });
+      }
+    }
+    admitRows.push({
       writerId,
       universityId: uniId,
-      admittedYear: admittedYear ? parseInt(admittedYear) : null,
+      admittedYear: year,
       applicationProgress: 0,
       verifiedAdmit: false,
-    }))
-  );
+    });
+  }
+
+  await db.delete(writerUniversities).where(eq(writerUniversities.writerId, writerId));
+  await db.insert(writerUniversities).values(admitRows);
 
   // Seed one in-progress draft application per selected university so the writer
   // lands on the dashboard with their applications already started. Idempotent:
