@@ -47,12 +47,18 @@ export async function POST(req: Request) {
     .returning();
 
   // Seed a Common App essay so the workspace isn't empty on first open.
-  await db.insert(studioEssays).values({
-    appId: app.id,
-    title: "Common App Essay",
-    prompt: null,
-    wordCap: 650,
-  });
+  try {
+    await db.insert(studioEssays).values({
+      appId: app.id,
+      title: "Common App Essay",
+      prompt: null,
+      wordCap: 650,
+    });
+  } catch (err) {
+    // Compensate: remove the application so we never persist an essay-less workspace.
+    await db.delete(studioApps).where(eq(studioApps.id, app.id));
+    throw err;
+  }
 
   return Response.json(app, { status: 201 });
 }
