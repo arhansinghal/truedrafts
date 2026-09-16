@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth";
 import { db, users } from "@/lib/db";
 import { eq } from "drizzle-orm";
+import { readJsonBounded } from "@/lib/request-limits";
 
 // Saves writer onboarding profile fields. Accepts any subset of
 // { name, country, bio, activities } and only updates what's provided, so the
@@ -9,8 +10,9 @@ export async function POST(req: Request) {
   const session = await auth.api.getSession({ headers: req.headers });
   if (!session) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
-  const body = await req.json();
-  const { name, country, bio, activities } = body;
+  const parsed = await readJsonBounded(req);
+  if (!parsed.ok) return Response.json({ error: parsed.error }, { status: parsed.status });
+  const { name, country, bio, activities } = (parsed.value ?? {}) as Record<string, unknown>;
 
   const updates: Record<string, unknown> = {};
   if (typeof name === "string" && name.trim()) updates.name = name.trim();

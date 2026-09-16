@@ -15,9 +15,6 @@ export type TavilyResult = {
   score: number;
 };
 
-export function isTavilyEnabled(): boolean {
-  return !!process.env.TAVILY_API_KEY;
-}
 
 export async function tavilySearch(query: string, maxResults = 4): Promise<TavilyResult[]> {
   const key = process.env.TAVILY_API_KEY;
