@@ -47,62 +47,7 @@ function emailWrapper(content: string) {
 </html>`;
 }
 
-export async function sendPurchaseConfirmation(buyerId: string, essayId: string) {
-  const resend = getResend();
-  if (!resend) return;
-  const [buyer, essay] = await Promise.all([
-    db.query.users.findFirst({ where: eq(users.id, buyerId) }),
-    db.query.essays.findFirst({ where: eq(essays.id, essayId) }),
-  ]);
-  if (!buyer || !essay) return;
 
-  const writer = await db.query.users.findFirst({ where: eq(users.id, essay.writerId) });
-
-  await resend!.emails.send({
-    from: FROM,
-    to: buyer.email,
-    subject: `You unlocked: ${essay.title}`,
-    html: emailWrapper(`
-      <p class="title">You've unlocked an essay! 🎓</p>
-      <p class="text">Hi ${buyer.name},</p>
-      <p class="text">You now have full access to <strong>${essay.title}</strong>. Head to your library to read it any time.</p>
-      <div class="highlight">
-        <p>Writer contact: <a href="mailto:${writer?.email}">${writer?.email ?? "N/A"}</a></p>
-      </div>
-      <p class="text">Feel free to reach out to the writer directly if you have questions about their application experience.</p>
-      <a href="${process.env.NEXT_PUBLIC_URL}/essays/${essay.slug}" class="btn">Read Your Essay →</a>
-    `),
-  });
-}
-
-export async function sendWriterSaleNotification(writerId: string, buyerId: string, essayId: string) {
-  const resend = getResend();
-  if (!resend) return;
-  const [writer, buyer, essay] = await Promise.all([
-    db.query.users.findFirst({ where: eq(users.id, writerId) }),
-    db.query.users.findFirst({ where: eq(users.id, buyerId) }),
-    db.query.essays.findFirst({ where: eq(essays.id, essayId) }),
-  ]);
-  if (!writer || !buyer || !essay) return;
-
-  const payoutDollars = ((essay.priceCents ?? 0) * 0.8 / 100).toFixed(2);
-
-  await resend!.emails.send({
-    from: FROM,
-    to: writer.email,
-    subject: `Your essay was purchased — +$${payoutDollars} earned`,
-    html: emailWrapper(`
-      <p class="title">Your essay was just purchased! 💰</p>
-      <p class="text">Hi ${writer.name},</p>
-      <p class="text"><strong>${essay.title}</strong> was purchased by ${buyer.name}.</p>
-      <div class="highlight">
-        <p>+$${payoutDollars} added to your available balance</p>
-      </div>
-      <p class="text">The buyer's contact is <a href="mailto:${buyer.email}">${buyer.email}</a> — they may reach out with questions about your experience.</p>
-      <a href="${process.env.NEXT_PUBLIC_URL}/writer/revenue" class="btn">View Your Earnings →</a>
-    `),
-  });
-}
 
 export async function sendEssayApproved(writerId: string, essayId: string) {
   const resend = getResend();

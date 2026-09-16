@@ -170,5 +170,3 @@ function safeParse(text: string): { suggestions: Array<{ text?: unknown; reason?
   }
 }
 
-// Re-export for caller-side type narrowing.
-export type { HubPassage, LibraryPassage, WebPassage };
