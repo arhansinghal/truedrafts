@@ -24,10 +24,31 @@ const ORDER_ID_RE = /^order_[A-Za-z0-9]{6,}$/;
 const PAYMENT_ID_RE = /^pay_[A-Za-z0-9]{6,}$/;
 const SIGNATURE_RE = /^[a-f0-9]{64}$/;
 
+// Upper bound on the verify-payment request body; the three expected fields are
+// well under 200 bytes, so anything larger is rejected without being parsed.
+const MAX_BODY_BYTES = 1024;
+
 export async function POST(req: Request) {
+  // A valid verify-payment body is three short strings (< 200 bytes). Refuse to
+  // buffer/parse anything larger so an oversized body is rejected before req.json().
+  const declaredLength = Number(req.headers.get("content-length"));
+  if (Number.isFinite(declaredLength) && declaredLength > MAX_BODY_BYTES) {
+    return Response.json({ error: "Request body too large" }, { status: 413 });
+  }
+
+  let raw: string;
+  try {
+    raw = await req.text();
+  } catch {
+    return Response.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+  if (raw.length > MAX_BODY_BYTES) {
+    return Response.json({ error: "Request body too large" }, { status: 413 });
+  }
+
   let body: Body;
   try {
-    body = (await req.json()) as Body;
+    body = JSON.parse(raw) as Body;
   } catch {
     return Response.json({ error: "Invalid JSON body" }, { status: 400 });
   }
