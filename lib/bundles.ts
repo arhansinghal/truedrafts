@@ -337,4 +337,3 @@ export async function getBundleMembershipMap(
 // ─── Re-exports for convenience ──────────────────────────────────────────────
 
 export type { Bundle } from "@/lib/db/schema";
-export type BundleRow = InferSelectModel<typeof bundles>;
