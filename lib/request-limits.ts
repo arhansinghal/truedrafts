@@ -23,3 +23,70 @@ export function bodyExceedsLimit(req: Request, max = MAX_BODY_BYTES): boolean {
 export function tooLong(v: unknown, max: number): boolean {
   return typeof v === "string" && v.length > max;
 }
+
+// ─── Streaming body guard ────────────────────────────────────────────────────
+// bodyExceedsLimit above trusts Content-Length, which a chunked request can
+// simply omit. These enforce the cap *while reading*, so the process never
+// buffers more than `max` bytes no matter what the client claims.
+
+/** Cap for small JSON form bodies (onboarding profile, writer settings, …).
+ *  Generous next to a realistic payload — bio is capped at 300 chars in the UI
+ *  and activities/honors are short {name, description} arrays — but small
+ *  enough that an authenticated client can't make the server hold megabytes. */
+export const MAX_JSON_BODY_BYTES = 100_000;
+
+/** Reads the body as text, refusing to buffer more than `max` bytes.
+ *  Returns null when the body exceeds the cap (the stream is cancelled), or
+ *  "" when there is no body at all. */
+export async function readBodyBounded(
+  req: Request,
+  max = MAX_JSON_BODY_BYTES,
+): Promise<string | null> {
+  // Cheap reject when the client sent an honest Content-Length.
+  if (bodyExceedsLimit(req, max)) return null;
+
+  const reader = req.body?.getReader();
+  if (!reader) return "";
+
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    if (!value) continue;
+    total += value.byteLength;
+    if (total > max) {
+      await reader.cancel();
+      return null;
+    }
+    chunks.push(value);
+  }
+
+  const merged = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    merged.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return new TextDecoder().decode(merged);
+}
+
+export type BoundedJson =
+  | { ok: true; value: unknown }
+  | { ok: false; status: 413 | 400; error: string };
+
+/** Size-capped JSON parse. Callers get a ready-made status/error for the two
+ *  failure modes so every route answers an oversized or malformed body the
+ *  same way. */
+export async function readJsonBounded(
+  req: Request,
+  max = MAX_JSON_BODY_BYTES,
+): Promise<BoundedJson> {
+  const raw = await readBodyBounded(req, max);
+  if (raw === null) return { ok: false, status: 413, error: "Payload too large" };
+  try {
+    return { ok: true, value: JSON.parse(raw) };
+  } catch {
+    return { ok: false, status: 400, error: "Invalid JSON" };
+  }
+}
