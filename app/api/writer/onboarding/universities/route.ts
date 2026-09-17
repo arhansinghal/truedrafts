@@ -42,8 +42,12 @@ export async function POST(req: Request) {
     });
   }
 
-  await db.delete(writerUniversities).where(eq(writerUniversities.writerId, writerId));
-  await db.insert(writerUniversities).values(admitRows);
+  // Replace the admits atomically: if the insert fails for any reason, the delete is
+  // rolled back so the writer is never left with zero admits.
+  await db.transaction(async (tx) => {
+    await tx.delete(writerUniversities).where(eq(writerUniversities.writerId, writerId));
+    await tx.insert(writerUniversities).values(admitRows);
+  });
 
   // Seed one in-progress draft application per selected university so the writer
   // lands on the dashboard with their applications already started. Idempotent:
