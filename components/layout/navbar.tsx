@@ -102,7 +102,7 @@ export function Navbar() {
                     className="flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:border-gray-300 hover:bg-gray-50 transition-colors"
                   >
                     <span className="h-6 w-6 rounded-full bg-[#e8f1fa] flex items-center justify-center text-[#0851A0] text-xs font-bold shrink-0">
-                      {user.name[0].toUpperCase()}
+                      {user.name?.[0]?.toUpperCase() ?? user.email?.[0]?.toUpperCase() ?? "?"}
                     </span>
                     <span className="max-w-[100px] truncate hidden sm:block">{user.name}</span>
                     <ChevronDown className={`h-3.5 w-3.5 text-gray-400 transition-transform ${menuOpen ? "rotate-180" : ""}`} />
