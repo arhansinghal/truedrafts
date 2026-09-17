@@ -59,7 +59,7 @@ export function AdminUserRow({ user }: { user: User }) {
         <td className="px-4 py-3">
           <div className="flex items-center gap-2">
             <div className="h-7 w-7 rounded-full bg-[#e8f1fa] flex items-center justify-center text-xs font-bold text-[#0851A0] shrink-0">
-              {user.name[0]}
+              {user.name?.[0] ?? "?"}
             </div>
             <div>
               <div className="flex items-center gap-1">
