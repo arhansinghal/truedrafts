@@ -95,7 +95,7 @@ export function buildVibeSearchText(meta: EssayVibeMetadata): string {
     meta.tone,
     ...(meta.themes ?? []).map(expand),
     ...(meta.core_values ?? []).map(expand),
-    meta.narrative_arc.replace(/_/g, " "),
+    typeof meta.narrative_arc === "string" ? meta.narrative_arc.replace(/_/g, " ") : "",
     meta.vibe_summary,
   ]
     .filter(Boolean)
