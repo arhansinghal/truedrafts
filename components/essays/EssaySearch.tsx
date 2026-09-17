@@ -12,7 +12,7 @@ export function EssaySearch({ currentSearch }: { currentSearch?: string }) {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   async function pushVibeSearch(raw: string) {
-    const params = new URLSearchParams(searchParams.toString());
+    let params = new URLSearchParams(window.location.search);
     params.delete("page");
 
     if (!raw.trim()) {
@@ -39,8 +39,13 @@ export function EssaySearch({ currentSearch }: { currentSearch?: string }) {
     try {
       setParsing(true);
       const res = await fetch(`/api/vibe-search?q=${encodeURIComponent(trimmed)}`);
-      if (res.ok) {
-        const intent = await res.json();
+      const intent = res.ok ? await res.json() : null;
+      // The URL may have changed while we awaited (filters, sort, pagination),
+      // so rebase onto the live query string before pushing.
+      params = new URLSearchParams(window.location.search);
+      params.delete("page");
+      params.set("vibe_q", trimmed);
+      if (intent) {
         const themes = [
           ...(Array.isArray(intent.themes) ? intent.themes : []),
           ...(Array.isArray(intent.activities) ? intent.activities : []),
@@ -62,7 +67,7 @@ export function EssaySearch({ currentSearch }: { currentSearch?: string }) {
         }
 
         // University — prefer resolved slug
-        if (!searchParams.get("university")) {
+        if (!params.get("university")) {
           if (intent.target_uni_slug) {
             params.set("detected_uni_slug", intent.target_uni_slug);
             params.delete("detected_uni");
@@ -127,6 +132,9 @@ export function EssaySearch({ currentSearch }: { currentSearch?: string }) {
         params.delete("sort");
       }
     } catch {
+      params = new URLSearchParams(window.location.search);
+      params.delete("page");
+      params.set("vibe_q", trimmed);
       params.set("q", trimmed);
       params.delete("sort");
     } finally {
