@@ -222,11 +222,15 @@ async function handleRefund(evt: WebhookEvent): Promise<Response> {
   // razorpayOrderId, not razorpayPaymentId. Look up the payment's order_id and
   // try to match a bundle parent. If neither matches, ack (it's a refund for a
   // payment we don't know about).
-  const orderId = await orderIdForPayment(r.payment_id);
-  if (!orderId) return new Response("ok", { status: 200 });
+  const lookup = await orderIdForPayment(r.payment_id);
+  if (!lookup.ok) {
+    // Transient Razorpay error — let it retry rather than dropping the refund.
+    return new Response("fetchPayment failed", { status: 502 });
+  }
+  if (!lookup.orderId) return new Response("ok", { status: 200 });
 
   const bundle = await db.query.bundlePurchases.findFirst({
-    where: eq(bundlePurchases.razorpayOrderId, orderId),
+    where: eq(bundlePurchases.razorpayOrderId, lookup.orderId),
   });
   if (!bundle) return new Response("ok", { status: 200 });
 
@@ -371,13 +375,17 @@ async function reverseBundle(bundleParentId: string): Promise<Response> {
   return new Response("ok", { status: 200 });
 }
 
-async function orderIdForPayment(paymentId: string): Promise<string | null> {
+type OrderLookup = { ok: true; orderId: string | null } | { ok: false };
+
+async function orderIdForPayment(paymentId: string): Promise<OrderLookup> {
   try {
     const p = await fetchPayment(paymentId);
-    return p.order_id ?? null;
+    return { ok: true, orderId: p.order_id ?? null };
   } catch (err) {
     console.error("orderIdForPayment failed:", err);
-    return null;
+    // Transient Razorpay error — signal the caller so it can ask for a retry
+    // instead of acking a refund we never actually processed.
+    return { ok: false };
   }
 }
 
@@ -398,10 +406,14 @@ async function handleRefundFailed(evt: WebhookEvent): Promise<Response> {
     return restoreSingleItem(purchase);
   }
 
-  const orderId = await orderIdForPayment(r.payment_id);
-  if (!orderId) return new Response("ok", { status: 200 });
+  const lookup = await orderIdForPayment(r.payment_id);
+  if (!lookup.ok) {
+    // Transient Razorpay error — let it retry rather than dropping the restore.
+    return new Response("fetchPayment failed", { status: 502 });
+  }
+  if (!lookup.orderId) return new Response("ok", { status: 200 });
   const bundle = await db.query.bundlePurchases.findFirst({
-    where: eq(bundlePurchases.razorpayOrderId, orderId),
+    where: eq(bundlePurchases.razorpayOrderId, lookup.orderId),
   });
   if (!bundle) return new Response("ok", { status: 200 });
   return restoreBundle(bundle.id);
