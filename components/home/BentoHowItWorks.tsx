@@ -58,21 +58,6 @@ function KeyPencilIcon({ dim }: { dim: boolean }) {
   );
 }
 
-function ChartPencilIcon({ dim }: { dim: boolean }) {
-  return (
-    <svg viewBox="0 0 80 80" fill="none" className={`w-16 h-16 transition-all duration-700 ${dim ? "opacity-40" : "opacity-100"}`}
-      style={{ filter: dim ? "none" : "drop-shadow(0 2px 4px rgba(255,255,255,0.25))" }}>
-      <g stroke="white" strokeLinecap="round" strokeLinejoin="round" fill="none">
-        <line x1="10" y1="65" x2="70" y2="65" strokeWidth={dim ? 1 : 2}/>
-        <line x1="10" y1="10" x2="10" y2="65" strokeWidth={dim ? 1 : 2}/>
-        <rect x="18" y="42" width="10" height="23" strokeWidth={dim ? 1 : 1.8} strokeDasharray={dim ? "3 2" : "none"}/>
-        <rect x="34" y="28" width="10" height="37" strokeWidth={dim ? 1 : 1.8} strokeDasharray={dim ? "3 2" : "none"}/>
-        <rect x="50" y="16" width="10" height="49" strokeWidth={dim ? 1 : 1.8} strokeDasharray={dim ? "3 2" : "none"}/>
-        <path d="M18 38 Q35 22 60 12" strokeWidth={dim ? 1 : 1.5} strokeDasharray="4 2"/>
-      </g>
-    </svg>
-  );
-}
 
 function ChatPencilIcon({ dim }: { dim: boolean }) {
   return (
@@ -98,17 +83,6 @@ function ChatPencilIcon({ dim }: { dim: boolean }) {
   );
 }
 
-/* ── Pencil arrow connector ──────────────────────────────────────────────── */
-function SketchArrow() {
-  return (
-    <svg viewBox="0 0 120 60" fill="none" className="hidden md:block w-24 h-12 shrink-0 opacity-25">
-      <path d="M5,30 C25,8 75,52 110,28" stroke="#0851A0" strokeWidth="2" strokeDasharray="5 4" strokeLinecap="round"/>
-      <path d="M102,22 L110,28 L103,34" stroke="#0851A0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-      {/* Extra wobbly texture strokes */}
-      <path d="M30,28 Q55,38 80,26" stroke="#0851A0" strokeWidth="0.8" strokeDasharray="3 5" strokeLinecap="round" opacity="0.4"/>
-    </svg>
-  );
-}
 
 /* ── Scroll-reveal hook ──────────────────────────────────────────────────── */
 function useInView(threshold = 0.4) {
