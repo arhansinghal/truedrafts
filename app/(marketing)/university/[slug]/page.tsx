@@ -84,6 +84,12 @@ export default async function UniversityPage({ params, searchParams }: Props) {
               {rows.length} essay{rows.length !== 1 ? "s" : ""} from verified admits
             </p>
           </div>
+          <Link
+            href={`/university/${uni.slug}/insights`}
+            className="ml-auto hidden shrink-0 rounded-lg border border-gray-200 px-3.5 py-2 text-sm font-semibold text-gray-700 transition-colors hover:border-[#0851A0] hover:text-[#0851A0] sm:inline-block"
+          >
+            See the numbers →
+          </Link>
         </div>
       </div>
 
