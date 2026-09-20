@@ -3,21 +3,26 @@ Database utilities — async read/write for insight brief caching.
 Uses asyncpg directly (no ORM) for speed.
 """
 from __future__ import annotations
-import asyncpg, json, os
+import asyncio, asyncpg, json, os
 from typing import Any
 
 _pool: asyncpg.Pool | None = None
+_pool_lock = asyncio.Lock()
 
 
 async def get_pool() -> asyncpg.Pool:
     global _pool
     if _pool is None:
-        _pool = await asyncpg.create_pool(
-            dsn=os.environ["DATABASE_URL"],
-            min_size=2,
-            max_size=10,
-            ssl="require",
-        )
+        async with _pool_lock:
+            # Re-check inside the lock: another coroutine may have created it
+            # while we were waiting.
+            if _pool is None:
+                _pool = await asyncpg.create_pool(
+                    dsn=os.environ["DATABASE_URL"],
+                    min_size=2,
+                    max_size=10,
+                    ssl="require",
+                )
     return _pool
 
 
