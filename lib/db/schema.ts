@@ -8,6 +8,7 @@ import {
   timestamp,
   vector,
   index,
+  uniqueIndex,
   primaryKey,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
@@ -58,6 +59,13 @@ export const studioEssayStatusEnum = pgEnum("studio_essay_status", [
   "draft",
   "in_progress",
   "done",
+]);
+export const ledgerEntryTypeEnum = pgEnum("ledger_entry_type", [
+  "sale",
+  "refund",
+  "payout",
+  "payout_reversal",
+  "adjustment",
 ]);
 export const studioSourceKindEnum = pgEnum("studio_source_kind", [
   "url",
@@ -460,6 +468,53 @@ export const referrals = pgTable("referrals", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// ─── Earnings ledger ────────────────────────────────────────────
+//
+// Append-only record of every movement in a writer's balance.
+//
+// `writer_earnings` holds three running totals and nothing else: a writer who
+// asks "where did this number come from" has no answer, and an admin
+// investigating a discrepancy has nothing to reconcile against. This table is
+// the history those totals are a summary of.
+//
+// Rules:
+//   - Rows are NEVER updated or deleted. A mistake is corrected by appending a
+//     compensating "adjustment", the way a real ledger works.
+//   - `amountCents` is SIGNED: credits are positive (sale, payout_reversal),
+//     debits are negative (refund, payout). An "adjustment" may be either.
+//   - (entryType, sourceType, sourceId) is UNIQUE, which makes writes
+//     idempotent: the grant path fires from both verify-payment and the
+//     webhook, and only the first one lands.
+export const earningsLedger = pgTable(
+  "earnings_ledger",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    writerId: text("writer_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    entryType: ledgerEntryTypeEnum("entry_type").notNull(),
+    amountCents: integer("amount_cents").notNull(),
+    // What caused this entry: "purchase" | "bundle_purchase" | "payout" | "manual".
+    sourceType: text("source_type").notNull(),
+    sourceId: text("source_id"),
+    // Human context, shown on the statement. e.g. the application title.
+    memo: text("memo"),
+    // When the money moved, which is not always when the row was written — the
+    // backfill stamps historical rows with their original purchase date.
+    occurredAt: timestamp("occurred_at").defaultNow().notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (t) => [
+    // The statement query: one writer, one month, in order.
+    index("idx_earnings_ledger_writer_time").on(t.writerId, t.occurredAt),
+    uniqueIndex("uq_earnings_ledger_source").on(
+      t.entryType,
+      t.sourceType,
+      t.sourceId,
+    ),
+  ],
+);
+
 // ─── Relations ────────────────────────────────────────────────────────────────
 
 export const usersRelations = relations(users, ({ many }) => ({
@@ -718,3 +773,4 @@ export type StudioApp = typeof studioApps.$inferSelect;
 export type StudioEssay = typeof studioEssays.$inferSelect;
 export type StudioSource = typeof studioSources.$inferSelect;
 export type StudioSourceChunk = typeof studioSourceChunks.$inferSelect;
+export type EarningsLedgerEntry = typeof earningsLedger.$inferSelect;

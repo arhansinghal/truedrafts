@@ -8,6 +8,7 @@ import {
   buildPayoutMethodSnapshot,
   maskPayoutMethodForWriter,
 } from "@/lib/payout-methods";
+import { recordLedgerEntry } from "@/lib/ledger/record";
 
 // Minimum payout threshold in paise. ₹1000 ≈ $12, matches the prior $10 floor.
 const MIN_PAYOUT_CENTS = 100000;
@@ -82,6 +83,18 @@ export async function POST(req: Request) {
       { status: 400 },
     );
   }
+
+  // The debit goes on the ledger as soon as the money is committed, not when
+  // admin marks it paid — from the writer's side it left their balance here.
+  await recordLedgerEntry({
+    writerId,
+    entryType: "payout",
+    amountCents: result.amountCents,
+    sourceType: "payout",
+    sourceId: result.id,
+    memo: "Payout requested",
+  });
+
   return Response.json(result, { status: 201 });
 }
 

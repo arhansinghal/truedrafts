@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import { db, payouts, writerEarnings } from "@/lib/db";
 import { isTrustedOrigin } from "@/lib/csrf";
 import { and, eq, sql } from "drizzle-orm";
+import { recordLedgerEntry } from "@/lib/ledger/record";
 
 /**
  * Admin payout state machine. Enforces:
@@ -138,5 +139,17 @@ export async function PATCH(
     return true;
   });
   if (!ok) return Response.json({ error: "Already updated" }, { status: 409 });
+
+  // The money came back. Append the reversal rather than deleting the original
+  // payout entry — the ledger is append-only and the writer should be able to
+  // see both halves of what happened.
+  await recordLedgerEntry({
+    writerId: payout.writerId,
+    entryType: "payout_reversal",
+    amountCents: payout.amountCents,
+    sourceType: "payout",
+    sourceId: payout.id,
+    memo: wasPaid ? "Payout reversed by bank" : "Payout cancelled",
+  });
   return Response.json({ ok: true });
 }

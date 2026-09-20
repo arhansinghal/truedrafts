@@ -4,6 +4,7 @@ import { bundlePurchases, collegeApplications } from "@/lib/db/schema";
 import { createRefund } from "@/lib/razorpay";
 import { isTrustedOrigin } from "@/lib/csrf";
 import { eq, and, sql, inArray } from "drizzle-orm";
+import { recordLedgerEntry } from "@/lib/ledger/record";
 
 /**
  * Admin-only purchase refund.
@@ -158,6 +159,17 @@ async function refundSingleItem(purchase: {
     }
   });
 
+  if (writerId && purchase.writerPayoutCents > 0) {
+    await recordLedgerEntry({
+      writerId,
+      entryType: "refund",
+      amountCents: purchase.writerPayoutCents,
+      sourceType: "purchase",
+      sourceId: purchase.id,
+      memo: "Purchase refunded",
+    });
+  }
+
   return Response.json({ ok: true });
 }
 
@@ -293,6 +305,20 @@ async function refundBundle(bundle: {
         .where(eq(writerEarnings.writerId, writerId));
     }
   });
+
+  // Mirror each writer's reversal onto the ledger, keyed the same way the
+  // original bundle sale entry was so the pair lines up.
+  for (const [writerId, amount] of reversals.entries()) {
+    if (amount <= 0) continue;
+    await recordLedgerEntry({
+      writerId,
+      entryType: "refund",
+      amountCents: amount,
+      sourceType: "bundle_purchase",
+      sourceId: `${bundle.id}:${writerId}`,
+      memo: "Bundle refunded",
+    });
+  }
 
   return Response.json({ ok: true });
 }

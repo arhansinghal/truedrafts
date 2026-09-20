@@ -8,6 +8,7 @@ import {
   Users,
   Wallet,
   User,
+  Receipt,
 } from "lucide-react";
 
 const NAV = [
@@ -15,6 +16,7 @@ const NAV = [
   { href: "/writer/essays", label: "My Applications", icon: PenLine },
   { href: "/writer/buyers", label: "Buyers", icon: Users },
   { href: "/writer/payout", label: "Payout", icon: Wallet },
+  { href: "/writer/statements", label: "Statements", icon: Receipt },
   { href: "/writer/profile", label: "Profile", icon: User },
 ];
 

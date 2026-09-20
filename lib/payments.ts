@@ -27,6 +27,7 @@ import {
 } from "@/lib/db/schema";
 import { eq, sql, and, inArray } from "drizzle-orm";
 import { computeProRataSplits } from "@/lib/bundles";
+import { recordLedgerEntry } from "@/lib/ledger/record";
 import {
   sendPurchaseBuyerEmail,
   sendPurchaseSellerEmail,
@@ -114,6 +115,17 @@ export async function grantEssayPurchase(input: {
       ),
     );
 
+  // Ledger entry mirrors the balance movement above. Keyed on the purchase id
+  // so a webhook retry can't double-book it.
+  await recordLedgerEntry({
+    writerId: essay.writerId,
+    entryType: "sale",
+    amountCents: payoutCents,
+    sourceType: "purchase",
+    sourceId: inserted[0].id,
+    memo: "Essay sale",
+  });
+
   // Email is best-effort — explicitly fire-and-forget so a slow SMTP can never
   // block grant. Errors are logged but never propagate to the caller.
   void Promise.all([
@@ -177,6 +189,15 @@ export async function grantApplicationPurchase(input: {
         updatedAt: new Date(),
       },
     });
+
+  await recordLedgerEntry({
+    writerId: app.writerId,
+    entryType: "sale",
+    amountCents: payoutCents,
+    sourceType: "purchase",
+    sourceId: inserted[0].id,
+    memo: "Application sale",
+  });
 
   void Promise.all([
     sendPurchaseBuyerEmail(buyerId, applicationId).catch(console.error),
@@ -340,6 +361,17 @@ export async function grantBundlePurchase(input: {
           updatedAt: new Date(),
         },
       });
+
+    // One ledger entry per writer on the bundle, keyed on
+    // (bundle purchase, writer) so a retry lands at most once each.
+    await recordLedgerEntry({
+      writerId,
+      entryType: "sale",
+      amountCents: share,
+      sourceType: "bundle_purchase",
+      sourceId: `${parent.id}:${writerId}`,
+      memo: "Bundle sale",
+    });
   }
 
   // Best-effort cleanup of the pending row; load-bearing idempotency lives on
