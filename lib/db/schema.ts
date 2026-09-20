@@ -59,6 +59,11 @@ export const studioEssayStatusEnum = pgEnum("studio_essay_status", [
   "in_progress",
   "done",
 ]);
+export const savedSearchCadenceEnum = pgEnum("saved_search_cadence", [
+  "off",
+  "daily",
+  "weekly",
+]);
 export const studioSourceKindEnum = pgEnum("studio_source_kind", [
   "url",
   "pdf",
@@ -460,6 +465,45 @@ export const referrals = pgTable("referrals", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// ─── Saved searches ─────────────────────────────────────────────
+//
+// A reader pins the Browse filters they care about ("Stanford, CS, 2025") and
+// optionally asks to hear about new matches by email.
+//
+// `filters` holds the normalised filter object rather than a raw query string
+// so the digest job and the Browse page can't drift apart in how they read it:
+// see lib/saved-search/filters.ts for the shape and the round-trip to URL
+// params.
+//
+// `lastNotifiedAt` is the digest watermark — only applications published after
+// it are considered new. NULL means "never sent", in which case the first run
+// looks back a bounded window rather than emailing the entire back catalogue.
+export const savedSearches = pgTable(
+  "saved_searches",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    // What the reader called it. Defaulted from the filters if they don't type
+    // anything.
+    name: text("name").notNull(),
+    filters: text("filters").notNull().default("{}"), // JSON: SavedSearchFilters
+    cadence: savedSearchCadenceEnum("cadence").notNull().default("weekly"),
+    lastNotifiedAt: timestamp("last_notified_at"),
+    // Bumped every time the digest includes something from this search — handy
+    // for spotting searches that never match anything.
+    matchesSent: integer("matches_sent").notNull().default(0),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => [
+    index("idx_saved_searches_user").on(t.userId),
+    // The digest job's scan: everything that wants mail, oldest watermark first.
+    index("idx_saved_searches_due").on(t.cadence, t.lastNotifiedAt),
+  ],
+);
+
 // ─── Relations ────────────────────────────────────────────────────────────────
 
 export const usersRelations = relations(users, ({ many }) => ({
@@ -718,3 +762,4 @@ export type StudioApp = typeof studioApps.$inferSelect;
 export type StudioEssay = typeof studioEssays.$inferSelect;
 export type StudioSource = typeof studioSources.$inferSelect;
 export type StudioSourceChunk = typeof studioSourceChunks.$inferSelect;
+export type SavedSearch = typeof savedSearches.$inferSelect;

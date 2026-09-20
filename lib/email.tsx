@@ -20,6 +20,7 @@ import ApplicationSubmittedEmail from "@/emails/ApplicationSubmitted";
 import WelcomeEmail from "@/emails/Welcome";
 import PurchaseBundleBuyerEmail from "@/emails/PurchaseBundleBuyer";
 import PurchaseBundleSellerEmail from "@/emails/PurchaseBundleSeller";
+import SavedSearchDigestEmail from "@/emails/SavedSearchDigest";
 
 const FROM = "TrueDrafts <team@truedrafts.com>";
 const APP_URL = process.env.NEXT_PUBLIC_URL ?? "https://truedrafts.com";
@@ -379,5 +380,76 @@ export async function sendApplicationRejectedEmail(writerId: string, application
       />
     ),
     metadata: { writerId, applicationId, reason },
+  });
+}
+
+// ---------------------------------------------------------------------------
+// 7. SAVED SEARCH DIGEST
+// ---------------------------------------------------------------------------
+export async function sendSavedSearchDigestEmail(payload: {
+  userId: string;
+  email: string;
+  name: string;
+  totalMatches: number;
+  sections: {
+    name: string;
+    description: string;
+    href: string;
+    matches: {
+      slug: string;
+      title: string;
+      universityName: string;
+      admittedYear: number | null;
+      priceCents: number;
+    }[];
+  }[];
+}) {
+  if (payload.sections.length === 0) return;
+
+  // At most one digest per reader per day, whatever the cadence says. Cheap
+  // insurance against a cron misfire turning into an inbox full of duplicates.
+  if (
+    await isRateLimited(
+      payload.email,
+      "saved_search_digest",
+      1,
+      20 * 60 * 60 * 1000,
+    )
+  ) {
+    console.log(`[email] digest rate-limited for ${payload.email}`);
+    return;
+  }
+
+  const noun = payload.totalMatches === 1 ? "application" : "applications";
+
+  await dispatch({
+    to: payload.email,
+    subject: `${payload.totalMatches} new ${noun} matching your saved searches`,
+    type: "saved_search_digest",
+    element: (
+      <SavedSearchDigestEmail
+        name={payload.name}
+        totalMatches={payload.totalMatches}
+        appUrl={APP_URL}
+        manageUrl={`${APP_URL}/dashboard/saved-searches`}
+        sections={payload.sections.map((section) => ({
+          name: section.name,
+          description: section.description,
+          href: section.href,
+          matches: section.matches.map((m) => ({
+            slug: m.slug,
+            title: m.title,
+            universityName: m.universityName,
+            admittedYear: m.admittedYear,
+            priceLabel: formatCents(m.priceCents),
+          })),
+        }))}
+      />
+    ),
+    metadata: {
+      userId: payload.userId,
+      totalMatches: payload.totalMatches,
+      searches: payload.sections.length,
+    },
   });
 }

@@ -6,6 +6,9 @@ import { collegeApplications, universities } from "@/lib/db/schema";
 import { eq, desc, asc, and, inArray, sql } from "drizzle-orm";
 import { FilterSidebar } from "@/components/essays/FilterSidebar";
 import { EssaySearch } from "@/components/essays/EssaySearch";
+import { SaveSearchButton } from "@/components/essays/SaveSearchButton";
+import { headers } from "next/headers";
+import { auth } from "@/lib/auth";
 import {
   ApplicationCard,
   type AppWithRelations,
@@ -142,9 +145,14 @@ export default async function ApplicationsPage({
   const pageSize = 18;
   const offset   = (page - 1) * pageSize;
 
-  const allUniversities = await db.query.universities.findMany({
-    orderBy: [asc(universities.displayOrder)],
-  });
+  // Needed only so the "Save this search" button knows whether to prompt for
+  // sign-in; nothing on this page is gated.
+  const [allUniversities, session] = await Promise.all([
+    db.query.universities.findMany({
+      orderBy: [asc(universities.displayOrder)],
+    }),
+    auth.api.getSession({ headers: await headers() }),
+  ]);
 
   const ivyUniIds = allUniversities
     .filter((u) => (IVY_UNIVERSITY_SLUGS as readonly string[]).includes(u.slug))
@@ -399,6 +407,11 @@ export default async function ApplicationsPage({
             }
           >
             <EssaySearch currentSearch={params.q} />
+          </Suspense>
+        </div>
+        <div className="mx-auto mt-3 flex max-w-7xl justify-center">
+          <Suspense fallback={null}>
+            <SaveSearchButton isLoggedIn={!!session} />
           </Suspense>
         </div>
       </div>
