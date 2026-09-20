@@ -5,6 +5,7 @@ import { collegeApplications, purchases } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { parseInsightBrief } from "@/components/applications/InsightPreview";
+import { ViewTracker } from "@/components/essays/ViewTracker";
 import { ApplicationReader, type ReaderEssay, type ReaderData } from "@/components/applications/ApplicationReader";
 import type { Metadata } from "next";
 
@@ -168,5 +169,13 @@ export default async function ApplicationDetailPage({ params }: Props) {
       : null,
   };
 
-  return <ApplicationReader data={data} />;
+  return (
+    <>
+      {/* Only count traffic from people who are not the writer themselves. */}
+      {session?.user.id !== app.writerId && (
+        <ViewTracker applicationId={app.id} />
+      )}
+      <ApplicationReader data={data} />
+    </>
+  );
 }

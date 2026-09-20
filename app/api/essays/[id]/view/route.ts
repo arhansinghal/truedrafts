@@ -1,40 +1,45 @@
 import { db, essays } from "@/lib/db";
 import { eq, sql } from "drizzle-orm";
-import { NextRequest } from "next/server";
+import { recordListingEvent } from "@/lib/analytics/query";
+import { shouldCountView } from "@/lib/analytics/view-throttle";
 
-// Simple in-memory rate limit: one view per IP per essay per 30 min
-const viewCache = new Map<string, number>();
-
+/**
+ * View beacon for a standalone essay.
+ *
+ * Bumps the lifetime counter on the listing (what the marketing pages sort by)
+ * *and* appends a timestamped row to `listing_events` so the writer analytics
+ * dashboard can scope views to a window. Both writes are best-effort.
+ */
 export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  req: Request,
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
-  const ip = req.headers.get("x-forwarded-for") ?? req.headers.get("x-real-ip") ?? "unknown";
-  const key = `${ip}:${id}`;
-  const now = Date.now();
-  const last = viewCache.get(key) ?? 0;
 
-  // Rate limit: 30 minutes per IP per essay
-  if (now - last < 30 * 60 * 1000) {
+  if (!shouldCountView(req, id)) {
     return Response.json({ ok: true, skipped: true });
   }
 
-  viewCache.set(key, now);
+  const essay = await db.query.essays
+    .findFirst({
+      where: eq(essays.id, id),
+      columns: { id: true, writerId: true },
+    })
+    .catch(() => undefined);
 
-  // Clean cache periodically
-  if (viewCache.size > 10000) {
-    const cutoff = now - 30 * 60 * 1000;
-    for (const [k, v] of viewCache.entries()) {
-      if (v < cutoff) viewCache.delete(k);
-    }
-  }
+  if (!essay) return Response.json({ ok: true, skipped: true });
 
   await db
     .update(essays)
     .set({ views: sql`${essays.views} + 1` })
     .where(eq(essays.id, id))
     .catch(() => {});
+
+  await recordListingEvent({
+    writerId: essay.writerId,
+    essayId: essay.id,
+    kind: "view",
+  });
 
   return Response.json({ ok: true });
 }

@@ -59,6 +59,10 @@ export const studioEssayStatusEnum = pgEnum("studio_essay_status", [
   "in_progress",
   "done",
 ]);
+export const listingEventKindEnum = pgEnum("listing_event_kind", [
+  "view",
+  "preview_open",
+]);
 export const studioSourceKindEnum = pgEnum("studio_source_kind", [
   "url",
   "pdf",
@@ -460,6 +464,48 @@ export const referrals = pgTable("referrals", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// ─── Listing events ──────────────────────────────────────────────
+//
+// Append-only event log behind the writer analytics dashboard.
+//
+// The `views` / `preview_opens` / `purchases` columns on essays and
+// college_applications are lifetime counters — they can tell a writer "812
+// people looked at this" but never "how many looked at it last week". This
+// table records the same signals with a timestamp so the dashboard can scope
+// them to a window.
+//
+// Deliberately skinny: no user id (views are mostly anonymous and we do not
+// want another PII surface), no user agent, no referrer. Just what the
+// dashboard aggregates. Rows are written best-effort — a failed insert must
+// never break the page the reader is looking at.
+//
+// Exactly one of essayId / applicationId is set, mirroring `purchases`.
+export const listingEvents = pgTable(
+  "listing_events",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    writerId: text("writer_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    essayId: uuid("essay_id").references(() => essays.id, {
+      onDelete: "cascade",
+    }),
+    applicationId: uuid("application_id").references(
+      () => collegeApplications.id,
+      { onDelete: "cascade" },
+    ),
+    kind: listingEventKindEnum("kind").notNull(),
+    occurredAt: timestamp("occurred_at").defaultNow().notNull(),
+  },
+  (t) => [
+    // The dashboard's hot path: "every event for this writer in this window",
+    // then grouped by day. Writer first, time second.
+    index("idx_listing_events_writer_time").on(t.writerId, t.occurredAt),
+    index("idx_listing_events_essay").on(t.essayId),
+    index("idx_listing_events_application").on(t.applicationId),
+  ],
+);
+
 // ─── Relations ────────────────────────────────────────────────────────────────
 
 export const usersRelations = relations(users, ({ many }) => ({
@@ -718,3 +764,4 @@ export type StudioApp = typeof studioApps.$inferSelect;
 export type StudioEssay = typeof studioEssays.$inferSelect;
 export type StudioSource = typeof studioSources.$inferSelect;
 export type StudioSourceChunk = typeof studioSourceChunks.$inferSelect;
+export type ListingEvent = typeof listingEvents.$inferSelect;

@@ -8,11 +8,13 @@ import {
   Users,
   Wallet,
   User,
+  BarChart3,
 } from "lucide-react";
 
 const NAV = [
   { href: "/writer", label: "Overview", icon: LayoutDashboard, exact: true },
   { href: "/writer/essays", label: "My Applications", icon: PenLine },
+  { href: "/writer/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/writer/buyers", label: "Buyers", icon: Users },
   { href: "/writer/payout", label: "Payout", icon: Wallet },
   { href: "/writer/profile", label: "Profile", icon: User },
