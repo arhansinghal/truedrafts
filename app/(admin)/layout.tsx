@@ -3,7 +3,7 @@ import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import Link from "next/link";
 import { Navbar } from "@/components/layout/navbar";
-import { LayoutDashboard, FileText, Users, DollarSign, AlertTriangle, Banknote, Package } from "lucide-react";
+import { LayoutDashboard, FileText, Users, DollarSign, AlertTriangle, Banknote, Package, Shield } from "lucide-react";
 
 const NAV = [
   { href: "/admin", label: "Overview", icon: LayoutDashboard },
@@ -14,6 +14,7 @@ const NAV = [
   { href: "/admin/revenue", label: "Revenue", icon: DollarSign },
   { href: "/admin/payouts", label: "Payouts", icon: Banknote },
   { href: "/admin/disputes", label: "Disputes", icon: AlertTriangle },
+  { href: "/admin/audit", label: "Audit log", icon: Shield },
 ];
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {

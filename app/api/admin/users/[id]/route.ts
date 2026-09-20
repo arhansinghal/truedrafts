@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth";
 import { db, users, sessions, accounts, collegeApplications } from "@/lib/db";
 import { eq, and, isNull, sql } from "drizzle-orm";
+import { recordAdminAction, AUDIT_ACTIONS } from "@/lib/audit/record";
 
 export async function PATCH(
   req: Request,
@@ -23,7 +24,31 @@ export async function PATCH(
     return Response.json({ error: "Nothing to update" }, { status: 400 });
   }
 
+  // Read the prior values before overwriting them — this is the only moment
+  // they still exist anywhere.
+  const before = await db.query.users.findFirst({
+    where: eq(users.id, id),
+    columns: { id: true, email: true, role: true, verifiedAdmit: true },
+  });
+  if (!before) return Response.json({ error: "User not found" }, { status: 404 });
+
   await db.update(users).set(updates).where(eq(users.id, id));
+
+  await recordAdminAction({
+    req,
+    actor: { id: session.user.id, email: session.user.email },
+    action: AUDIT_ACTIONS.userUpdate,
+    targetType: "user",
+    targetId: id,
+    targetLabel: before.email,
+    before: { role: before.role, verifiedAdmit: before.verifiedAdmit },
+    after: {
+      role: "role" in updates ? updates.role : before.role,
+      verifiedAdmit:
+        "verifiedAdmit" in updates ? updates.verifiedAdmit : before.verifiedAdmit,
+    },
+  });
+
   return Response.json({ ok: true });
 }
 
@@ -108,6 +133,20 @@ export async function DELETE(
         deletedAt: new Date(),
       })
       .where(eq(users.id, id));
+  });
+
+  // Deliberately after the transaction and deliberately terse: the point of
+  // deleting an account is that its details stop existing, so the log records
+  // that it happened and who did it, not what was scrubbed.
+  await recordAdminAction({
+    req,
+    actor: { id: session.user.id, email: session.user.email },
+    action: AUDIT_ACTIONS.userDelete,
+    targetType: "user",
+    targetId: id,
+    targetLabel: `user ${id}`,
+    before: { role: target.role, deleted: false },
+    after: { role: "reader", deleted: true },
   });
 
   return Response.json({ ok: true });

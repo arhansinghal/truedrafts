@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { collegeApplications } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { sendApplicationRejectedEmail } from "@/lib/email";
+import { recordAdminAction, AUDIT_ACTIONS } from "@/lib/audit/record";
 
 export async function POST(
   req: Request,
@@ -28,6 +29,17 @@ export async function POST(
     .update(collegeApplications)
     .set({ status: "rejected", rejectionNote: reason })
     .where(eq(collegeApplications.id, id));
+
+  await recordAdminAction({
+    req,
+    actor: { id: session.user.id, email: session.user.email },
+    action: AUDIT_ACTIONS.applicationReject,
+    targetType: "college_application",
+    targetId: id,
+    targetLabel: app.title,
+    before: { status: app.status, rejectionNote: app.rejectionNote },
+    after: { status: "rejected", rejectionNote: reason },
+  });
 
   sendApplicationRejectedEmail(app.writerId, id, reason).catch(console.error);
 

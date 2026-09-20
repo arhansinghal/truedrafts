@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import { db, essays, universities } from "@/lib/db";
 import { sendEssayApproved } from "@/lib/resend";
 import { eq } from "drizzle-orm";
+import { recordAdminAction, AUDIT_ACTIONS } from "@/lib/audit/record";
 
 export async function POST(
   req: Request,
@@ -27,6 +28,17 @@ export async function POST(
       publishedAt: new Date(),
     })
     .where(eq(essays.id, id));
+
+  await recordAdminAction({
+    req,
+    actor: { id: session.user.id, email: session.user.email },
+    action: AUDIT_ACTIONS.essayApprove,
+    targetType: "essay",
+    targetId: id,
+    targetLabel: essay.title,
+    before: { status: essay.status, publishedAt: essay.publishedAt },
+    after: { status: "approved" },
+  });
 
   sendEssayApproved(essay.writerId, id).catch(console.error);
 

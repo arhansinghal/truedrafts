@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { tagEssay, buildVibeSearchText, getEssayHighlight } from "@/lib/gemma";
 import { generateInsightBrief } from "@/lib/vibe-anthropic";
 import { sendApplicationApprovedEmail } from "@/lib/email";
+import { recordAdminAction, AUDIT_ACTIONS } from "@/lib/audit/record";
 
 export async function POST(
   req: Request,
@@ -38,6 +39,17 @@ export async function POST(
       publishedAt: new Date(),
     })
     .where(eq(collegeApplications.id, id));
+
+  await recordAdminAction({
+    req,
+    actor: { id: session.user.id, email: session.user.email },
+    action: AUDIT_ACTIONS.applicationApprove,
+    targetType: "college_application",
+    targetId: id,
+    targetLabel: app.title,
+    before: { status: app.status, priceCents: app.priceCents },
+    after: { status: "approved", priceCents },
+  });
 
   // Tag the essay asynchronously — doesn't block the approval response
   const essayText = [

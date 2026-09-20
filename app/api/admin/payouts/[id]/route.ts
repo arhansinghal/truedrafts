@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import { db, payouts, writerEarnings } from "@/lib/db";
 import { isTrustedOrigin } from "@/lib/csrf";
 import { and, eq, sql } from "drizzle-orm";
+import { recordAdminAction, AUDIT_ACTIONS } from "@/lib/audit/record";
 
 /**
  * Admin payout state machine. Enforces:
@@ -67,6 +68,7 @@ export async function PATCH(
     if (flipped.length === 0) {
       return Response.json({ error: "Already updated" }, { status: 409 });
     }
+    await auditTransition(req, session.user, payout, "processing");
     return Response.json({ ok: true });
   }
 
@@ -96,6 +98,7 @@ export async function PATCH(
       return true;
     });
     if (!ok) return Response.json({ error: "Already updated" }, { status: 409 });
+    await auditTransition(req, session.user, payout, "paid");
     return Response.json({ ok: true });
   }
 
@@ -138,5 +141,29 @@ export async function PATCH(
     return true;
   });
   if (!ok) return Response.json({ error: "Already updated" }, { status: 409 });
+  await auditTransition(req, session.user, payout, "failed");
   return Response.json({ ok: true });
+}
+
+/**
+ * Record a payout state change. Called only after the CAS won, so the log
+ * contains one entry per transition that actually happened — never one per
+ * duplicate PATCH that no-opped.
+ */
+async function auditTransition(
+  req: Request,
+  actor: { id: string; email: string },
+  payout: { id: string; status: string; writerId: string; amountCents: number },
+  next: string,
+): Promise<void> {
+  await recordAdminAction({
+    req,
+    actor,
+    action: AUDIT_ACTIONS.payoutTransition,
+    targetType: "payout",
+    targetId: payout.id,
+    targetLabel: `${payout.amountCents} paise to ${payout.writerId}`,
+    before: { status: payout.status },
+    after: { status: next },
+  });
 }

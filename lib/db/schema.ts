@@ -460,6 +460,54 @@ export const referrals = pgTable("referrals", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// ─── Admin audit log ────────────────────────────────────────────
+//
+// Who did what, to which record, and what changed.
+//
+// Admin actions are the ones with consequences — approving a listing, changing
+// a payout's state, deleting an account, issuing a refund — and until now they
+// left no trace beyond the row they mutated. This table is the trace.
+//
+// Append-only by convention: nothing in the app updates or deletes a row. The
+// retention script prunes by age and that is the only writer that removes
+// anything.
+//
+// `beforeJson` / `afterJson` hold the redacted field values around the change,
+// not the whole record: see lib/audit/redact.ts for what is stripped. The
+// actor's email is snapshotted so the log still reads correctly after an admin
+// account is renamed or deleted.
+export const adminAuditLog = pgTable(
+  "admin_audit_log",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    // Nullable and ON DELETE SET NULL: deleting an admin account must not take
+    // the record of what they did with it.
+    actorId: text("actor_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    actorEmail: text("actor_email").notNull(),
+    // Dotted verb, e.g. "application.approve", "user.role_change".
+    action: text("action").notNull(),
+    targetType: text("target_type").notNull(),
+    targetId: text("target_id"),
+    // Human label for the target, snapshotted at action time.
+    targetLabel: text("target_label"),
+    beforeJson: text("before_json"),
+    afterJson: text("after_json"),
+    // Best-effort request context. Never used for anything but forensics.
+    ipAddress: text("ip_address"),
+    userAgent: text("user_agent"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (t) => [
+    // The default view: newest first, optionally narrowed.
+    index("idx_admin_audit_created").on(t.createdAt),
+    index("idx_admin_audit_actor").on(t.actorId, t.createdAt),
+    index("idx_admin_audit_target").on(t.targetType, t.targetId),
+    index("idx_admin_audit_action").on(t.action, t.createdAt),
+  ],
+);
+
 // ─── Relations ────────────────────────────────────────────────────────────────
 
 export const usersRelations = relations(users, ({ many }) => ({
@@ -718,3 +766,4 @@ export type StudioApp = typeof studioApps.$inferSelect;
 export type StudioEssay = typeof studioEssays.$inferSelect;
 export type StudioSource = typeof studioSources.$inferSelect;
 export type StudioSourceChunk = typeof studioSourceChunks.$inferSelect;
+export type AdminAuditEntry = typeof adminAuditLog.$inferSelect;
