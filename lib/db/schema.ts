@@ -59,6 +59,18 @@ export const studioEssayStatusEnum = pgEnum("studio_essay_status", [
   "in_progress",
   "done",
 ]);
+export const promoKindEnum = pgEnum("promo_kind", ["percent", "flat"]);
+export const promoScopeEnum = pgEnum("promo_scope", [
+  "all",
+  "applications",
+  "essays",
+  "bundles",
+]);
+export const promoRedemptionStatusEnum = pgEnum("promo_redemption_status", [
+  "reserved",
+  "applied",
+  "void",
+]);
 export const studioSourceKindEnum = pgEnum("studio_source_kind", [
   "url",
   "pdf",
@@ -460,6 +472,84 @@ export const referrals = pgTable("referrals", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// ─── Promo codes ────────────────────────────────────────────────
+//
+// Admin-created discount codes a buyer can enter at checkout.
+//
+// Two flavours, mirroring how bundles price themselves:
+//   - kind="percent": percentOff (1–100) off the subtotal, optionally capped
+//                     at maxDiscountCents so a big-ticket listing cannot blow
+//                     through the campaign budget.
+//   - kind="flat":    flatOffCents straight off the subtotal.
+//
+// The discount is computed at order-create time and the resulting charge is
+// what Razorpay collects. The code's terms are snapshotted into the redemption
+// row so editing or deleting a code later never rewrites history.
+export const promoCodes = pgTable(
+  "promo_codes",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    // Always stored upper-case; lookups normalise the buyer's input the same
+    // way so "welcome10" and "WELCOME10" are the same code.
+    code: text("code").notNull().unique(),
+    description: text("description"),
+    kind: promoKindEnum("kind").notNull(),
+    percentOff: integer("percent_off"),
+    flatOffCents: integer("flat_off_cents"),
+    // Cap on a percent discount. NULL means uncapped.
+    maxDiscountCents: integer("max_discount_cents"),
+    // Order subtotal the buyer must reach before the code applies.
+    minSubtotalCents: integer("min_subtotal_cents").notNull().default(0),
+    scope: promoScopeEnum("scope").notNull().default("all"),
+    // NULL means unlimited.
+    maxRedemptions: integer("max_redemptions"),
+    maxRedemptionsPerUser: integer("max_redemptions_per_user")
+      .notNull()
+      .default(1),
+    timesRedeemed: integer("times_redeemed").notNull().default(0),
+    startsAt: timestamp("starts_at"),
+    endsAt: timestamp("ends_at"),
+    active: boolean("active").notNull().default(true),
+    createdBy: text("created_by").references(() => users.id),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => [index("idx_promo_codes_active").on(t.active, t.endsAt)],
+);
+
+// One row per (code, checkout attempt). Created when the Razorpay order is
+// created and flipped to "applied" once the payment is granted, so an abandoned
+// checkout does not permanently consume a limited code.
+export const promoRedemptions = pgTable(
+  "promo_redemptions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    promoCodeId: uuid("promo_code_id")
+      .notNull()
+      .references(() => promoCodes.id, { onDelete: "cascade" }),
+    buyerId: text("buyer_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    // The Razorpay order this discount belongs to. UNIQUE — one discount per
+    // order, and the grant path looks the redemption up by this key.
+    razorpayOrderId: text("razorpay_order_id").notNull().unique(),
+    subtotalCents: integer("subtotal_cents").notNull(),
+    discountCents: integer("discount_cents").notNull(),
+    chargedCents: integer("charged_cents").notNull(),
+    // Snapshot of the code's terms at reservation time.
+    termsSnapshot: text("terms_snapshot").notNull(),
+    listingKind: text("listing_kind").notNull(), // essay | application | bundle
+    listingId: uuid("listing_id"),
+    status: promoRedemptionStatusEnum("status").notNull().default("reserved"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    appliedAt: timestamp("applied_at"),
+  },
+  (t) => [
+    index("idx_promo_redemptions_code").on(t.promoCodeId, t.status),
+    index("idx_promo_redemptions_buyer").on(t.buyerId, t.promoCodeId),
+  ],
+);
+
 // ─── Relations ────────────────────────────────────────────────────────────────
 
 export const usersRelations = relations(users, ({ many }) => ({
@@ -718,3 +808,5 @@ export type StudioApp = typeof studioApps.$inferSelect;
 export type StudioEssay = typeof studioEssays.$inferSelect;
 export type StudioSource = typeof studioSources.$inferSelect;
 export type StudioSourceChunk = typeof studioSourceChunks.$inferSelect;
+export type PromoCode = typeof promoCodes.$inferSelect;
+export type PromoRedemption = typeof promoRedemptions.$inferSelect;

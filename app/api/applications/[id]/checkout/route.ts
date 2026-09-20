@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { collegeApplications, purchases } from "@/lib/db/schema";
 import { createOrder } from "@/lib/razorpay";
 import { isTrustedOrigin } from "@/lib/csrf";
+import { evaluateCode, reserveRedemption } from "@/lib/promo-store";
 import { eq, and } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 
@@ -26,6 +27,18 @@ export async function POST(
       { error: "Writer accounts can't purchase. Use a reader account to buy applications." },
       { status: 403 },
     );
+  }
+
+  // The promo code is optional; a body is not required at all for the ordinary
+  // full-price path, so a missing or unparseable body is not an error.
+  let promoCodeInput = "";
+  try {
+    const body = await req.json();
+    if (body && typeof body.promoCode === "string") {
+      promoCodeInput = body.promoCode;
+    }
+  } catch {
+    promoCodeInput = "";
   }
 
   const existing = await db.query.purchases.findFirst({
@@ -62,9 +75,44 @@ export async function POST(
     );
   }
 
+  // Price the order server-side. The client may send a code but never a price;
+  // whatever discount lands here is the one the grant path will honour.
+  let chargeCents = app.priceCents;
+  let quotedDiscountCents = 0;
+
+  if (promoCodeInput.trim()) {
+    const evaluation = await evaluateCode({
+      raw: promoCodeInput,
+      buyerId: session.user.id,
+      subtotalCents: app.priceCents,
+      listingKind: "application",
+    });
+
+    if (!evaluation.ok) {
+      return Response.json(
+        { error: "promo_rejected", reason: evaluation.reason, message: evaluation.message },
+        { status: 422 },
+      );
+    }
+
+    chargeCents = evaluation.quote.chargedCents;
+    quotedDiscountCents = evaluation.quote.discountCents;
+
+    if (chargeCents < 100) {
+      return Response.json(
+        {
+          error: "promo_rejected",
+          reason: "below_gateway_minimum",
+          message: "That code brings the total below the ₹1 minimum we can charge.",
+        },
+        { status: 422 },
+      );
+    }
+  }
+
   try {
     const order = await createOrder({
-      amount: app.priceCents,
+      amount: chargeCents,
       currency: "INR",
       receipt: `app_${randomUUID().slice(0, 16)}`,
       notes: {
@@ -74,6 +122,31 @@ export async function POST(
       },
     });
 
+    if (promoCodeInput.trim()) {
+      const reservation = await reserveRedemption({
+        raw: promoCodeInput,
+        buyerId: session.user.id,
+        subtotalCents: app.priceCents,
+        listingKind: "application",
+        listingId: app.id,
+        razorpayOrderId: order.id,
+      });
+
+      // If the code slipped out from under us between the quote and the
+      // reservation, fail the checkout rather than charging a discounted price
+      // for a code we never recorded.
+      if (!reservation.ok) {
+        return Response.json(
+          {
+            error: "promo_rejected",
+            reason: reservation.reason,
+            message: reservation.message,
+          },
+          { status: 422 },
+        );
+      }
+    }
+
     return Response.json({
       order_id: order.id,
       amount: order.amount,
@@ -82,6 +155,8 @@ export async function POST(
       name: "TrueDrafts",
       description: `Unlock: ${app.title}`.slice(0, 250),
       prefill: { email: session.user.email, name: session.user.name },
+      listPriceCents: app.priceCents,
+      discountCents: quotedDiscountCents,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

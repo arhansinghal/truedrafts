@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Lock } from "lucide-react";
 import { formatCents } from "@/lib/utils";
 import { openRazorpayCheckout } from "@/lib/razorpay-client";
+import { PromoCodeField, type AppliedPromo } from "@/components/checkout/PromoCodeField";
 
 interface Props {
   applicationId: string;
@@ -24,6 +25,11 @@ export function ApplicationPaywall({
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [promo, setPromo] = useState<AppliedPromo | null>(null);
+
+  // What the button says. The server re-prices the order from scratch, so this
+  // is a display of the quote, never the thing that decides the charge.
+  const payableCents = promo ? promo.chargedCents : priceCents;
 
   async function handleUnlock() {
     if (!isLoggedIn) {
@@ -35,6 +41,7 @@ export function ApplicationPaywall({
     try {
       await openRazorpayCheckout({
         createOrderUrl: `/api/applications/${applicationId}/checkout`,
+        orderBody: promo ? { promoCode: promo.code } : undefined,
         onSuccess: () => router.refresh(),
         onFailure: (msg) => setError(msg),
       });
@@ -73,8 +80,24 @@ export function ApplicationPaywall({
         <Lock className="h-4 w-4" />
         {loading
           ? "Opening payment…"
-          : `Unlock Full Application — ${formatCents(priceCents)}`}
+          : `Unlock Full Application — ${formatCents(payableCents)}`}
       </Button>
+
+      {promo && (
+        <p className="text-xs text-gray-400">
+          <span className="line-through">{formatCents(priceCents)}</span>{" "}
+          with {promo.code}
+        </p>
+      )}
+
+      {isLoggedIn && viewerRole !== "writer" && (
+        <PromoCodeField
+          listingKind="application"
+          listingId={applicationId}
+          onApplied={setPromo}
+        />
+      )}
+
       {error && (
         <p className="text-xs text-red-500 text-center max-w-xs">{error}</p>
       )}

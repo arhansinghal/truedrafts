@@ -27,6 +27,8 @@ import {
 } from "@/lib/db/schema";
 import { eq, sql, and, inArray } from "drizzle-orm";
 import { computeProRataSplits } from "@/lib/bundles";
+import { splitWithPromo, splitWithoutPromo } from "@/lib/promo";
+import { markRedemptionApplied, redemptionForOrder } from "@/lib/promo-store";
 import {
   sendPurchaseBuyerEmail,
   sendPurchaseSellerEmail,
@@ -129,11 +131,32 @@ export async function grantApplicationPurchase(input: {
   buyerId: string;
   applicationId: string;
   amountCents: number;
+  /**
+   * The order this payment settled. Optional only because the legacy essay
+   * flow doesn't have one; applications always do, and without it a promo
+   * redemption reserved at checkout cannot be found.
+   */
+  razorpayOrderId?: string;
 }): Promise<GrantResult> {
-  const { razorpayPaymentId, buyerId, applicationId, amountCents } = input;
+  const { razorpayPaymentId, buyerId, applicationId, amountCents, razorpayOrderId } =
+    input;
   assertValidAmount(amountCents, "grantApplicationPurchase");
-  const feeCents = Math.floor(amountCents * PLATFORM_FEE_PCT);
-  const payoutCents = amountCents - feeCents;
+
+  // A discounted sale splits differently: writers are paid on the list price
+  // and the platform funds the discount out of its own half. See lib/promo.ts.
+  const redemption = razorpayOrderId
+    ? await redemptionForOrder(razorpayOrderId)
+    : null;
+
+  const split = redemption
+    ? splitWithPromo({
+        chargedCents: amountCents,
+        listPriceCents: redemption.subtotalCents,
+      })
+    : splitWithoutPromo(amountCents);
+
+  const feeCents = split.feeCents;
+  const payoutCents = split.payoutCents;
 
   const inserted = await db
     .insert(purchases)
@@ -177,6 +200,12 @@ export async function grantApplicationPurchase(input: {
         updatedAt: new Date(),
       },
     });
+
+  // Settle the promo reservation. Idempotent — only a row still in "reserved"
+  // moves, so the webhook and verify-payment both firing can't double-count it.
+  if (razorpayOrderId && redemption) {
+    await markRedemptionApplied(razorpayOrderId).catch(console.error);
+  }
 
   void Promise.all([
     sendPurchaseBuyerEmail(buyerId, applicationId).catch(console.error),

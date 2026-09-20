@@ -135,6 +135,7 @@ export async function POST(req: Request) {
           buyerId: routed.buyerId,
           applicationId: routed.refId,
           amountCents: payment.amount,
+          razorpayOrderId: orderId,
         });
         break;
       case "bundle":

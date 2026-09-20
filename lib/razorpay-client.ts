@@ -49,6 +49,12 @@ type OrderResponse = {
 
 export type OpenCheckoutOptions = {
   createOrderUrl: string;
+  /**
+   * Extra fields for the create-order POST — currently just `{ promoCode }`.
+   * Never a price: the server prices the order and the client only ever names
+   * things (a listing id, a coupon string).
+   */
+  orderBody?: Record<string, unknown>;
   themeColor?: string;
   onSuccess?: (data: { paymentId: string; orderId: string }) => void;
   onFailure?: (message: string) => void;
@@ -92,10 +98,15 @@ export async function openRazorpayCheckout(opts: OpenCheckoutOptions): Promise<v
   const orderRes = await fetch(opts.createOrderUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(opts.orderBody ?? {}),
   });
   if (!orderRes.ok) {
-    const { error } = (await orderRes.json().catch(() => ({}))) as { error?: string };
-    throw new Error(error || `Checkout failed (${orderRes.status})`);
+    const { error, message } = (await orderRes.json().catch(() => ({}))) as {
+      error?: string;
+      message?: string;
+    };
+    // A rejected promo code carries a human message worth surfacing verbatim.
+    throw new Error(message || error || `Checkout failed (${orderRes.status})`);
   }
   const order = (await orderRes.json()) as OrderResponse;
 

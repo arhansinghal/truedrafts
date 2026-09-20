@@ -186,6 +186,7 @@ async function handlePaymentCaptured(evt: WebhookEvent): Promise<Response> {
           buyerId: routed.buyerId,
           applicationId: routed.refId,
           amountCents: p.amount as number,
+          razorpayOrderId: p.order_id as string,
         });
         break;
       case "bundle":
