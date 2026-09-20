@@ -22,6 +22,10 @@ import {
 } from "lucide-react";
 import { ApplicationPaywall } from "@/components/applications/ApplicationPaywall";
 import { formatCents } from "@/lib/utils";
+import { HighlightableText } from "@/components/applications/HighlightableText";
+import { NotesPanel } from "@/components/applications/NotesPanel";
+import { useHighlights } from "@/components/applications/useHighlights";
+import type { Anchor, StoredHighlight } from "@/lib/highlights/anchor";
 
 export interface ReaderEssay {
   kind: string;
@@ -70,6 +74,15 @@ export function ApplicationReader({ data }: { data: ReaderData }) {
   const [s, setS] = useState({ size: "m", body: "serif", width: "cozy", notes: true });
   const set = (k: string, v: string | boolean) => setS((p) => ({ ...p, [k]: v }));
   const scroller = useRef<HTMLDivElement>(null);
+
+  // Highlights are a buyer's private marks. Nothing loads or renders for a
+  // locked reader — there is no paid text on screen to mark.
+  const [notesOpen, setNotesOpen] = useState(false);
+  const [focusedHighlightId, setFocusedHighlightId] = useState<string | null>(null);
+  const highlights = useHighlights({
+    applicationId: data.id,
+    enabled: data.isPurchased,
+  });
 
   const fontPx = s.size === "s" ? 17.5 : s.size === "l" ? 22 : 19.5;
   const lineH = s.body === "serif" ? 1.95 : 1.8;
@@ -159,36 +172,81 @@ export function ApplicationReader({ data }: { data: ReaderData }) {
       </header>
 
       {/* scroll body */}
-      <div ref={scroller} className="tdx-scroll relative flex-1 overflow-y-auto">
-        <ChapterRail essays={essays} active={active} goChapter={goChapter} purchased={purchased} progress={progress} colW={colW} readMins={data.readMins} />
+      <div className="relative flex flex-1 overflow-hidden">
+        <div ref={scroller} className="tdx-scroll relative flex-1 overflow-y-auto">
+          <ChapterRail essays={essays} active={active} goChapter={goChapter} purchased={purchased} progress={progress} colW={colW} readMins={data.readMins} />
 
-        <div className="essay-protected mx-auto px-7 pb-[120px]" style={{ maxWidth: colW, transition: "max-width .3s" }}>
-          {showFront && <Frontispiece data={data} />}
-          {showFront && data.editorNote && <EditorNote text={data.editorNote} />}
+          <div className="essay-protected mx-auto px-7 pb-[120px]" style={{ maxWidth: colW, transition: "max-width .3s" }}>
+            {showFront && <Frontispiece data={data} />}
+            {showFront && data.editorNote && <EditorNote text={data.editorNote} />}
 
-          {purchased && essays.length > 1 && <ChapterTabs essays={essays} active={active} onPick={goChapter} />}
+            {purchased && essays.length > 1 && <ChapterTabs essays={essays} active={active} onPick={goChapter} />}
 
-          <div style={{ marginTop: showFront ? 52 : 8 }}>
-            <Chapter
-              key={purchased ? active : "locked"}
-              essay={current}
-              index={purchased ? active : 0}
-              fontPx={fontPx}
-              lineH={lineH}
-              bodyFont={s.body}
-              showNotes={s.notes}
-              marginNotes={purchased && active === 0 ? data.marginNotes : []}
-              locked={!purchased}
-              watermark={watermark}
+            <div style={{ marginTop: showFront ? 52 : 8 }}>
+              <Chapter
+                key={purchased ? active : "locked"}
+                essay={current}
+                index={purchased ? active : 0}
+                fontPx={fontPx}
+                lineH={lineH}
+                bodyFont={s.body}
+                showNotes={s.notes}
+                marginNotes={purchased && active === 0 ? data.marginNotes : []}
+                locked={!purchased}
+                watermark={watermark}
+                annotatable={purchased}
+                highlightsFor={highlights.forParagraph}
+                onSelect={(anchor: Anchor, quote: string, paragraphText: string) => {
+                  void highlights.create({ anchor, quote, paragraphText });
+                  setNotesOpen(true);
+                }}
+                onOpenHighlight={(highlight: StoredHighlight) => {
+                  setFocusedHighlightId(highlight.id);
+                  setNotesOpen(true);
+                }}
+              />
+            </div>
+
+            {!purchased && <UnlockGate data={data} />}
+
+            {purchased && essays.length > 1 && <ChapterFooter essays={essays} active={active} onPick={goChapter} />}
+            {purchased && active === last && data.writer && <WriterNote writer={data.writer} />}
+          </div>
+        </div>
+
+        {purchased && notesOpen && (
+          <div className="hidden w-[320px] shrink-0 lg:block">
+            <NotesPanel
+              title={data.title}
+              items={highlights.items}
+              focusedId={focusedHighlightId}
+              onUpdate={(id, patch) => void highlights.update(id, patch)}
+              onRemove={(id) => void highlights.remove(id)}
+              onClose={() => {
+                setNotesOpen(false);
+                setFocusedHighlightId(null);
+              }}
             />
           </div>
-
-          {!purchased && <UnlockGate data={data} />}
-
-          {purchased && essays.length > 1 && <ChapterFooter essays={essays} active={active} onPick={goChapter} />}
-          {purchased && active === last && data.writer && <WriterNote writer={data.writer} />}
-        </div>
+        )}
       </div>
+
+      {purchased && !notesOpen && (
+        <button
+          type="button"
+          onClick={() => setNotesOpen(true)}
+          className="fixed bottom-6 right-6 z-10 hidden items-center gap-2 rounded-full px-4 py-2.5 text-[13px] font-semibold lg:inline-flex"
+          style={{
+            background: "var(--ink)",
+            color: "var(--paper)",
+            boxShadow: "var(--shadow-lg)",
+          }}
+        >
+          <PenLine className="h-[15px] w-[15px]" />
+          Notes
+          {highlights.items.length > 0 && ` (${highlights.items.length})`}
+        </button>
+      )}
     </div>
   );
 }
@@ -203,6 +261,12 @@ function Para({
   showNotes,
   drop,
   reserveNote,
+  essayIndex,
+  paraIndex,
+  annotatable,
+  highlights,
+  onSelect,
+  onOpenHighlight,
 }: {
   text: string;
   note?: string;
@@ -212,19 +276,42 @@ function Para({
   showNotes: boolean;
   drop?: boolean;
   reserveNote: boolean;
+  essayIndex: number;
+  paraIndex: number;
+  annotatable: boolean;
+  highlights: StoredHighlight[];
+  onSelect: (anchor: Anchor, quote: string, paragraphText: string) => void;
+  onOpenHighlight: (highlight: StoredHighlight) => void;
 }) {
-  const body = drop ? text.slice(1) : text;
+  // The drop cap splits the first character into its own floated span, which
+  // would put a hole in the middle of the text a selection range measures.
+  // Buyers get a plain first letter and working highlights; locked readers, who
+  // can't highlight anything, still get the flourish.
+  const useDropCap = drop && !annotatable;
+  const body = useDropCap ? text.slice(1) : text;
   const para = (
     <p
       className={bodyFont === "serif" ? "serif" : ""}
       style={{ margin: 0, fontSize: fontPx, lineHeight: lineH, color: "var(--ink)", letterSpacing: bodyFont === "serif" ? "0" : "-.005em" }}
     >
-      {drop && (
+      {useDropCap && (
         <span className="serif float-left pr-2.5 font-semibold" style={{ fontSize: fontPx * 3.1, lineHeight: 0.8, color: "var(--td-blue)", marginTop: 8 }}>
           {text[0]}
         </span>
       )}
-      {body}
+      {annotatable ? (
+        <HighlightableText
+          text={body}
+          essayIndex={essayIndex}
+          paraIndex={paraIndex}
+          highlights={highlights}
+          onSelect={onSelect}
+          onOpenHighlight={onOpenHighlight}
+          interactive
+        />
+      ) : (
+        body
+      )}
     </p>
   );
 
@@ -261,6 +348,10 @@ function Chapter({
   marginNotes,
   locked,
   watermark,
+  annotatable,
+  highlightsFor,
+  onSelect,
+  onOpenHighlight,
 }: {
   essay: ReaderEssay;
   index: number;
@@ -271,6 +362,10 @@ function Chapter({
   marginNotes: string[];
   locked: boolean;
   watermark?: string;
+  annotatable: boolean;
+  highlightsFor: (essayIndex: number, paraIndex: number) => StoredHighlight[];
+  onSelect: (anchor: Anchor, quote: string, paragraphText: string) => void;
+  onOpenHighlight: (highlight: StoredHighlight) => void;
 }) {
   const paras = locked ? essay.paras.slice(0, 3) : essay.paras;
   // Only reserve the right-hand margin-notes column when this chapter actually
@@ -318,6 +413,12 @@ function Chapter({
               showNotes={showNotes}
               drop={index === 0 && i === 0}
               reserveNote={hasNotes}
+              essayIndex={index}
+              paraIndex={i}
+              annotatable={annotatable}
+              highlights={annotatable ? highlightsFor(index, i) : []}
+              onSelect={onSelect}
+              onOpenHighlight={onOpenHighlight}
             />
           ))}
         </div>

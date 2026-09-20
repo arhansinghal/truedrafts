@@ -59,6 +59,12 @@ export const studioEssayStatusEnum = pgEnum("studio_essay_status", [
   "in_progress",
   "done",
 ]);
+export const highlightColorEnum = pgEnum("highlight_color", [
+  "yellow",
+  "blue",
+  "green",
+  "pink",
+]);
 export const studioSourceKindEnum = pgEnum("studio_source_kind", [
   "url",
   "pdf",
@@ -460,6 +466,49 @@ export const referrals = pgTable("referrals", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// ─── Highlights & notes ─────────────────────────────────────────
+//
+// A buyer marking up an application they bought.
+//
+// Anchoring is by (essayIndex, paraIndex, startOffset, endOffset) against the
+// paragraph array the reader renders — the same `paras` the server builds in
+// app/(marketing)/applications/[slug]/page.tsx. Character offsets are
+// [start, end): start inclusive, end exclusive, exactly like String.slice.
+//
+// `quote` is the highlighted text as it was when the highlight was made. It is
+// denormalised on purpose: it is what the notes library and the export render
+// (so neither has to re-fetch essay bodies), and it is how we detect an anchor
+// that has drifted if a writer ever edits a published application.
+export const highlights = pgTable(
+  "highlights",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    applicationId: uuid("application_id")
+      .notNull()
+      .references(() => collegeApplications.id, { onDelete: "cascade" }),
+    // Index into the reader's essay list: 0 = personal statement, then
+    // supplementals in order.
+    essayIndex: integer("essay_index").notNull(),
+    paraIndex: integer("para_index").notNull(),
+    startOffset: integer("start_offset").notNull(),
+    endOffset: integer("end_offset").notNull(),
+    quote: text("quote").notNull(),
+    note: text("note"),
+    color: highlightColorEnum("color").notNull().default("yellow"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => [
+    // The reader's load: everything this buyer marked on this application.
+    index("idx_highlights_user_application").on(t.userId, t.applicationId),
+    // The notes library: everything this buyer marked, newest first.
+    index("idx_highlights_user_time").on(t.userId, t.createdAt),
+  ],
+);
+
 // ─── Relations ────────────────────────────────────────────────────────────────
 
 export const usersRelations = relations(users, ({ many }) => ({
@@ -718,3 +767,4 @@ export type StudioApp = typeof studioApps.$inferSelect;
 export type StudioEssay = typeof studioEssays.$inferSelect;
 export type StudioSource = typeof studioSources.$inferSelect;
 export type StudioSourceChunk = typeof studioSourceChunks.$inferSelect;
+export type Highlight = typeof highlights.$inferSelect;
