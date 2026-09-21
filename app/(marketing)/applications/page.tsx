@@ -17,6 +17,7 @@ import {
   IVY_UNIVERSITY_SLUGS,
 } from "@/lib/vibe-anthropic";
 import { expandSearchTokens, buildFilterTokens } from "@/lib/search-tokens";
+import { parsePage, parseSort, parseYearList } from "@/lib/list-params";
 import { BundleHeroStrip } from "@/components/bundles/BundleHeroStrip";
 import { getBundleMembershipMap } from "@/lib/bundles";
 
@@ -43,6 +44,15 @@ const CARD_COLUMNS = {
   submittedCommonApp: true,
   numSupplementals: true,
 } as const;
+
+const ALLOWED_SORTS = [
+  "popular",
+  "trending",
+  "newest",
+  "top_rated",
+  "price_asc",
+  "relevance",
+] as const;
 
 const SORT_OPTIONS = {
   popular: desc(collegeApplications.views),
@@ -113,7 +123,7 @@ export default async function ApplicationsPage({
   }>;
 }) {
   const params = await searchParams;
-  const sort = (params.sort ?? "newest") as keyof typeof SORT_OPTIONS | "relevance";
+  const sort = parseSort(params.sort, ALLOWED_SORTS, "newest");
 
   const orderByColumn =
     sort === "relevance"
@@ -132,13 +142,9 @@ export default async function ApplicationsPage({
     : [];
   const searchQuery   = params.q?.trim();
   const rankQuery     = (params.vibe_q?.trim() || searchQuery || "").trim();
-  const page          = Math.max(1, parseInt(params.page ?? "1"));
-  const selectedYears = params.year
-    ? params.year.split(",").map(Number).filter((n) => !isNaN(n) && n > 0)
-    : [];
-  const detectedYears = params.detected_years
-    ? params.detected_years.split(",").map(Number).filter((n) => !isNaN(n) && n > 0)
-    : [];
+  const page          = parsePage(params.page);
+  const selectedYears = parseYearList(params.year);
+  const detectedYears = parseYearList(params.detected_years);
   const pageSize = 18;
   const offset   = (page - 1) * pageSize;
 
