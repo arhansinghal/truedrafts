@@ -11,6 +11,7 @@ import {
   grantBundlePurchase,
   parseNotes,
 } from "@/lib/payments";
+import { creditReferralBonus } from "@/lib/referrals";
 
 type Body = {
   razorpay_order_id?: unknown;
@@ -147,6 +148,14 @@ export async function POST(req: Request) {
 
     if (result === "missing") {
       return Response.json({ error: "Referenced item missing" }, { status: 404 });
+    }
+
+    // Pay the buyer's referrer, if they have one.
+    if (routed.kind !== "bundle") {
+      await creditReferralBonus({
+        buyerId: routed.buyerId,
+        amountCents: payment.amount,
+      });
     }
     return Response.json({
       success: true,
