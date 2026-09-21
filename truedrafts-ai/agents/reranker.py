@@ -16,8 +16,11 @@ _client_cache: AsyncOpenAI | None = None
 def _client() -> AsyncOpenAI:
     global _client_cache
     if _client_cache is None:
+        api_key = os.environ.get("GROQ_API_KEY")
+        if not api_key:
+            raise RuntimeError("GROQ_API_KEY is not set")
         _client_cache = AsyncOpenAI(
-            api_key=os.environ["GROQ_API_KEY"],
+            api_key=api_key,
             base_url=GROQ_BASE,
         )
     return _client_cache
@@ -78,7 +81,14 @@ async def score_relevance(intent: dict, briefs: list[dict]) -> list[dict]:
     Returns:
         list of { id, score, reason } sorted by score descending
     """
-    client = _client()
+    try:
+        client = _client()
+    except Exception:
+        return [
+            {"id": item["id"], "score": 0, "reason": "scoring failed"}
+            for item in briefs
+            if item.get("brief")
+        ]
     tasks = [
         _score_one(client, item["id"], intent, item["brief"])
         for item in briefs
