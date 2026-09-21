@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth";
 import { db, essays } from "@/lib/db";
+import { essayRevisions } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { generateSlug, computePreview } from "@/lib/utils";
 
@@ -35,5 +36,19 @@ export async function PATCH(
   }
 
   await db.update(essays).set(updates).where(eq(essays.id, id));
+
+  // Snapshot the body so the writer can diff and roll back later. Only worth
+  // a row when the text actually changed — metadata-only edits (price, title)
+  // would otherwise fill the history with identical entries.
+  if (fullContent) {
+    await db.insert(essayRevisions).values({
+      essayId: id,
+      editorId: session.user.id,
+      content: fullContent,
+      wordCount: fullContent.split(/\s+/).length,
+      note: typeof body.revisionNote === "string" ? body.revisionNote.slice(0, 500) : null,
+    });
+  }
+
   return Response.json({ ok: true });
 }

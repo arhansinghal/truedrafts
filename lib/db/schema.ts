@@ -306,6 +306,23 @@ export const ratings = pgTable("ratings", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Every edit to a published essay snapshots the previous body here so a writer
+// can see what changed and roll back a bad rewrite. Append-only; rows are never
+// updated, and they outlive the essay only until the essay row is deleted.
+export const essayRevisions = pgTable("essay_revisions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  essayId: uuid("essay_id")
+    .notNull()
+    .references(() => essays.id, { onDelete: "cascade" }),
+  editorId: text("editor_id")
+    .notNull()
+    .references(() => users.id),
+  content: text("content").notNull(),
+  wordCount: integer("word_count").notNull().default(0),
+  note: text("note"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const collections = pgTable("collections", {
   id: uuid("id").primaryKey().defaultRandom(),
   title: text("title").notNull(),
