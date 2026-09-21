@@ -306,6 +306,30 @@ export const ratings = pgTable("ratings", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Prepaid unlock credits. Buyers can top up once (or get credits from support
+// as a goodwill gesture) and spend one credit per essay instead of running a
+// card for every ₹ purchase. One row per user, created lazily on first grant.
+export const userCredits = pgTable("user_credits", {
+  userId: text("user_id")
+    .primaryKey()
+    .references(() => users.id, { onDelete: "cascade" }),
+  balance: integer("balance").notNull().default(0),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Audit trail for every credit movement: positive `delta` on a grant/top-up,
+// negative when a credit is spent unlocking an essay.
+export const creditLedger = pgTable("credit_ledger", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  delta: integer("delta").notNull(),
+  reason: text("reason").notNull(),
+  essayId: uuid("essay_id").references(() => essays.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const collections = pgTable("collections", {
   id: uuid("id").primaryKey().defaultRandom(),
   title: text("title").notNull(),
