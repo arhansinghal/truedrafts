@@ -1,7 +1,8 @@
 import Link from "next/link";
 import Image from "next/image";
-import { Star, Eye, ShoppingBag, CheckCircle } from "lucide-react";
+import { Star, Eye, ShoppingBag, CheckCircle, Clock } from "lucide-react";
 import { essayTypeLabel } from "@/lib/utils";
+import { formatReadingTime } from "@/lib/reading-time";
 import type { Essay, University, User } from "@/lib/db/schema";
 
 type EssayWithRelations = Essay & {
@@ -73,6 +74,10 @@ export function EssayCard({ essay }: { essay: EssayWithRelations }) {
             <span className="flex items-center gap-1">
               <ShoppingBag className="h-3.5 w-3.5" />
               {essay.purchases}
+            </span>
+            <span className="flex items-center gap-1">
+              <Clock className="h-3.5 w-3.5" />
+              {formatReadingTime(essay.wordCount)}
             </span>
             {(essay.ratingCount ?? 0) > 0 && (
               <span className="flex items-center gap-1">
