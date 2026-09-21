@@ -34,6 +34,7 @@ import {
   grantBundlePurchase,
   parseNotes,
 } from "@/lib/payments";
+import { creditReferralBonus } from "@/lib/referrals";
 import { db } from "@/lib/db";
 import {
   purchases,
@@ -197,6 +198,14 @@ async function handlePaymentCaptured(evt: WebhookEvent): Promise<Response> {
     }
     if (result === "missing") {
       console.error("Razorpay webhook: referenced item missing", routed);
+    }
+
+    // Pay the buyer's referrer, if they have one.
+    if (routed.kind !== "bundle") {
+      await creditReferralBonus({
+        buyerId: routed.buyerId,
+        amountCents: p.amount as number,
+      });
     }
     return new Response("ok", { status: 200 });
   } catch (err) {
