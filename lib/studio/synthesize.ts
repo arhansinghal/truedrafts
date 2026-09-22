@@ -20,7 +20,7 @@ const MAX_PASSAGE_CHARS = 700;
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY ?? "" });
 
-export type SynthSuggestion = {
+type SynthSuggestion = {
   text: string;
   reason: string;
   // The 1-based index into the role-tagged passage list shown to the model.
@@ -29,7 +29,7 @@ export type SynthSuggestion = {
   citationKind: "hub" | "web" | null;
 };
 
-export type SynthResult = {
+type SynthResult = {
   suggestions: SynthSuggestion[];
   raw?: string;
   error?: string;

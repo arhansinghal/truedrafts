@@ -33,12 +33,12 @@ export function tooLong(v: unknown, max: number): boolean {
  *  Generous next to a realistic payload — bio is capped at 300 chars in the UI
  *  and activities/honors are short {name, description} arrays — but small
  *  enough that an authenticated client can't make the server hold megabytes. */
-export const MAX_JSON_BODY_BYTES = 100_000;
+const MAX_JSON_BODY_BYTES = 100_000;
 
 /** Reads the body as text, refusing to buffer more than `max` bytes.
  *  Returns null when the body exceeds the cap (the stream is cancelled), or
  *  "" when there is no body at all. */
-export async function readBodyBounded(
+async function readBodyBounded(
   req: Request,
   max = MAX_JSON_BODY_BYTES,
 ): Promise<string | null> {
@@ -71,7 +71,7 @@ export async function readBodyBounded(
   return new TextDecoder().decode(merged);
 }
 
-export type BoundedJson =
+type BoundedJson =
   | { ok: true; value: unknown }
   | { ok: false; status: 413 | 400; error: string };
 

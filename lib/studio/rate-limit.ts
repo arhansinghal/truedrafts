@@ -12,15 +12,15 @@ import { db } from "@/lib/db";
 import { studioRateLimits } from "@/lib/db/schema";
 import { and, eq, sql } from "drizzle-orm";
 
-export type Bucket = "suggest_min" | "suggest_day";
+type Bucket = "suggest_min" | "suggest_day";
 
 const LIMITS: Record<Bucket, { max: number; windowSec: number }> = {
   suggest_min: { max: 12, windowSec: 60 },
   suggest_day: { max: 400, windowSec: 60 * 60 * 24 },
 };
 
-export type RateLimitOk = { ok: true; bucket: Bucket; remaining: number };
-export type RateLimitDeny = { ok: false; bucket: Bucket; retryAfterSec: number };
+type RateLimitOk = { ok: true; bucket: Bucket; remaining: number };
+type RateLimitDeny = { ok: false; bucket: Bucket; retryAfterSec: number };
 
 export async function checkAndIncrement(
   userId: string,

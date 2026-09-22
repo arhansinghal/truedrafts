@@ -38,7 +38,7 @@ export function parseBundleRule(raw: string | null | undefined): BundleRule {
 
 // ─── Member resolution ───────────────────────────────────────────────────────
 
-export type BundleMember = Pick<
+type BundleMember = Pick<
   CollegeApplication,
   "id" | "title" | "slug" | "priceCents" | "writerId" | "universityId" | "tags" | "admittedYear"
 > & { university: Pick<University, "id" | "name" | "slug" | "type" | "region"> };
