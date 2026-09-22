@@ -26,7 +26,7 @@ type SuggestRequest = {
   webEnabled?: boolean;
 };
 
-export type SuggestionItem = {
+type SuggestionItem = {
   id: string;
   sentence: string;
   text: string;
