@@ -169,15 +169,6 @@ function concatBytes(arrs: Uint8Array[]): Uint8Array {
   return out;
 }
 
-export function sha256Hex(text: string): string {
-  // Lightweight, no external dep — use crypto.subtle in Edge / Node 20+.
-  // Fall back to a synchronous fnv-1a if subtle is unavailable.
-  if (typeof crypto !== "undefined" && crypto.subtle) {
-    // Caller wraps in await
-    throw new Error("Use sha256HexAsync; sync version not available in this runtime");
-  }
-  return fnv1a(text);
-}
 
 export async function sha256HexAsync(text: string): Promise<string> {
   if (typeof crypto !== "undefined" && crypto.subtle) {
