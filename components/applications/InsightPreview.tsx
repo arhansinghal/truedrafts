@@ -1,6 +1,6 @@
 import { Sparkles, FileText, BookOpen, Lightbulb } from "lucide-react";
 
-export interface InsightBrief {
+interface InsightBrief {
   common_app?: { summary?: string; topics?: string[] };
   supplementals?: Array<{
     prompt_summary?: string;
