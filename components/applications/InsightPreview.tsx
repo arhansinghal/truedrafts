@@ -1,5 +1,5 @@
 
-export interface InsightBrief {
+interface InsightBrief {
   common_app?: { summary?: string; topics?: string[] };
   supplementals?: Array<{
     prompt_summary?: string;

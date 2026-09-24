@@ -1,4 +1,4 @@
-export function GradCapDoodle({ className }: { className?: string }) {
+function GradCapDoodle({ className }: { className?: string }) {
   return (
     <svg
       viewBox="0 0 100 80"
@@ -17,7 +17,7 @@ export function GradCapDoodle({ className }: { className?: string }) {
   );
 }
 
-export function BookDoodle({ className }: { className?: string }) {
+function BookDoodle({ className }: { className?: string }) {
   return (
     <svg
       viewBox="0 0 100 70"
@@ -41,7 +41,7 @@ export function BookDoodle({ className }: { className?: string }) {
   );
 }
 
-export function PencilDoodle({ className }: { className?: string }) {
+function PencilDoodle({ className }: { className?: string }) {
   return (
     <svg
       viewBox="0 0 34 110"
@@ -61,7 +61,7 @@ export function PencilDoodle({ className }: { className?: string }) {
   );
 }
 
-export function DocumentDoodle({ className }: { className?: string }) {
+function DocumentDoodle({ className }: { className?: string }) {
   return (
     <svg
       viewBox="0 0 70 88"
@@ -82,7 +82,7 @@ export function DocumentDoodle({ className }: { className?: string }) {
   );
 }
 
-export function BuildingDoodle({ className }: { className?: string }) {
+function BuildingDoodle({ className }: { className?: string }) {
   return (
     <svg
       viewBox="0 0 100 82"
@@ -104,7 +104,7 @@ export function BuildingDoodle({ className }: { className?: string }) {
   );
 }
 
-export function StarDoodle({ className }: { className?: string }) {
+function StarDoodle({ className }: { className?: string }) {
   return (
     <svg
       viewBox="0 0 50 48"
@@ -120,7 +120,7 @@ export function StarDoodle({ className }: { className?: string }) {
   );
 }
 
-export function QuillDoodle({ className }: { className?: string }) {
+function QuillDoodle({ className }: { className?: string }) {
   return (
     <svg
       viewBox="0 0 60 105"
@@ -140,7 +140,7 @@ export function QuillDoodle({ className }: { className?: string }) {
   );
 }
 
-export function DiplomaScroll({ className }: { className?: string }) {
+function DiplomaScroll({ className }: { className?: string }) {
   return (
     <svg
       viewBox="0 0 90 62"

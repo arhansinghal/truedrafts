@@ -9,7 +9,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-export function Eyebrow({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+function Eyebrow({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return <div className={`eyebrow ${className}`}>{children}</div>;
 }
 
@@ -126,7 +126,7 @@ const PILL_TONES: Record<string, React.CSSProperties> = {
   ink: { background: "var(--ink)", color: "var(--paper)", border: "1px solid var(--ink)" },
 };
 
-export function Pill({
+function Pill({
   children,
   tone = "neutral",
 }: {
