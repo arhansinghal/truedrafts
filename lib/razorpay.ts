@@ -34,7 +34,7 @@ export type RazorpayPayment = {
   created_at?: number;
 };
 
-export type RazorpayRefund = {
+type RazorpayRefund = {
   id: string;
   payment_id: string;
   amount: number;

@@ -21,7 +21,7 @@ if (typeof P.try !== "function") {
   P.try = (fn, ...args) => new Promise((resolve) => resolve(fn(...args)));
 }
 
-export type PdfText = { title: string; text: string };
+type PdfText = { title: string; text: string };
 
 export async function extractFromPdf(buffer: ArrayBuffer): Promise<PdfText> {
   const pdf = await getDocumentProxy(new Uint8Array(buffer));
