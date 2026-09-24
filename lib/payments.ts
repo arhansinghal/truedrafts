@@ -36,7 +36,7 @@ import {
 
 const PLATFORM_FEE_PCT = 0.5; // Platform keeps 50%, writers earn 50%
 
-export type GrantResult = "granted" | "already" | "missing";
+type GrantResult = "granted" | "already" | "missing";
 
 function assertValidAmount(amountCents: number, label: string): void {
   if (!Number.isFinite(amountCents) || !Number.isInteger(amountCents) || amountCents <= 0) {

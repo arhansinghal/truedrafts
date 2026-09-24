@@ -6,7 +6,7 @@ import { buildAliasPromptSnippet } from "./university-lookup";
  * These outputs drive search recall and the purchase-preview UI, so we keep
  * them on the higher-quality provider. Override via ANTHROPIC_VIBE_MODEL.
  */
-export const DEFAULT_VIBE_MODEL =
+const DEFAULT_VIBE_MODEL =
   process.env.ANTHROPIC_VIBE_MODEL ?? "claude-haiku-4-5-20251001";
 
 /**
@@ -15,7 +15,7 @@ export const DEFAULT_VIBE_MODEL =
  * cheaper than Haiku with comparable JSON-output quality. Override via
  * VIBE_FAST_MODEL.
  */
-export const DEFAULT_FAST_MODEL =
+const DEFAULT_FAST_MODEL =
   process.env.VIBE_FAST_MODEL ?? "deepseek-chat";
 
 /** Ivy League members that exist in our seed (MIT/Stanford are not Ivy). */
@@ -364,7 +364,7 @@ ${suppBlocks || "NO SUPPLEMENTALS"}`;
 
 // ─── rankApplicationsByRelevance ─────────────────────────────────────────────
 
-export type RankCandidate = {
+type RankCandidate = {
   id: string;
   title: string;
   vibeSearchText: string | null;

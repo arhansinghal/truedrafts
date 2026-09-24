@@ -47,7 +47,7 @@ type OrderResponse = {
   prefill?: { name?: string; email?: string; contact?: string };
 };
 
-export type OpenCheckoutOptions = {
+type OpenCheckoutOptions = {
   createOrderUrl: string;
   themeColor?: string;
   onSuccess?: (data: { paymentId: string; orderId: string }) => void;

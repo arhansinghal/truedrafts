@@ -10,27 +10,27 @@
 
 export type PayoutMethodKind = "upi" | "bank_account" | "zelle";
 
-export type UpiInput = {
+type UpiInput = {
   kind: "upi";
   accountHolderName: string;
   upiId: string;
 };
 
-export type BankAccountInput = {
+type BankAccountInput = {
   kind: "bank_account";
   accountHolderName: string;
   bankAccountNumber: string;
   bankIfsc: string;
 };
 
-export type ZelleInput = {
+type ZelleInput = {
   kind: "zelle";
   accountHolderName: string;
   zelleEmail?: string;
   zellePhone?: string;
 };
 
-export type PayoutMethodInput = UpiInput | BankAccountInput | ZelleInput;
+type PayoutMethodInput = UpiInput | BankAccountInput | ZelleInput;
 
 // What we return to the writer's browser. Sensitive fields are masked.
 export type MaskedPayoutMethod = {
